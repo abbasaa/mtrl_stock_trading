@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 
 
-device = torch.device("cpu")
+device = torch.device("cuda")
 WINDOW = 10
 END_TIME = 200
 env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
@@ -27,6 +27,8 @@ observation_dim = 2
 
 policy_net = DQN(WINDOW, observation_dim, WINDOW//2, WINDOW//4, n_actions)
 target_net = DQN(WINDOW, observation_dim, WINDOW//2, WINDOW//4, n_actions)
+target_net = target_net.to(device)
+policy_net = policy_net.to(device)
 
 target_net.load_state_dict(policy_net.state_dict())
 target_net.eval()
