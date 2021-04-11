@@ -7,11 +7,12 @@ from ReplayMemory import ReplayMemory, Transition
 import random
 import torch
 import torch.nn.functional as F
+import time 
 
-
+start = time.perf_counter()
 device = torch.device("cuda")
-WINDOW = 10
-END_TIME = 200
+WINDOW = 250
+END_TIME = 2000
 env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
 
 BATCH_SIZE = 128
@@ -143,6 +144,8 @@ for i_episode in range(num_episodes):
     if i_episode % TARGET_UPDATE == 0:
         target_net.load_state_dict(policy_net.state_dict())
 
+stop = time.perf_counter()
+print(f"Completed execution in: {stop - start:0.4f} seconds")
 
 fig, ax = plt.subplots()
 exploration = [e / (END_TIME - WINDOW) for e in exploration]
