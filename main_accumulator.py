@@ -34,7 +34,7 @@ stock_prices = np.zeros((num_stocks,200))
 sector = np.zeros((1,200))
 env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
 sector[0,:] = env.env.prices
-values  = np.zeros((190,2,num_agents))
+values  = np.zeros((190,2,num_stocks))
 
 for i in range(num_stocks):
     print('Training Agent ',i+1)
