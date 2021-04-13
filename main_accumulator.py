@@ -25,8 +25,7 @@ num_episodes = 5
 memory = ReplayMemory(256)
 
 
-actions = torch.tensor(())
-actions = actions.to(device)
+
 # weird bug with start time -- some times these values work and sometimes they cause an error and has to be re-run
 start_time = np.random.randint(10, 1500, size=5)
 #start_time = [50, 120, 210, 310, 600]
@@ -35,6 +34,7 @@ stock_prices = np.zeros((num_stocks,200))
 sector = np.zeros((1,200))
 env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
 sector[0,:] = env.env.prices
+values  = np.zeros((190,2,num_agents))
 
 for i in range(num_stocks):
     print('Training Agent ',i+1)
@@ -47,30 +47,28 @@ for i in range(num_stocks):
     env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
     observation = env.reset()
     position = torch.zeros((1, 1),  dtype=torch.float, device=device)
-    action_temp = torch.tensor(())
-    action_temp = action_temp.to(device)
     for j in range(190):
         # select and perform action
-        action_new = step_SA(policy_net, position, observation)
-        action_temp = torch.cat([action_temp,action_new],1)
+        action_new, value = step_SA(policy_net, position, observation)
+        values[j,:,i] = value
         next_position = action_new
         next_observation, reward, done, info = env.step(action_new)
         position = next_position
         observation = next_observation
-    actions = torch.cat([actions, action_temp],0)
 
-HP_A = accumulator(sector, stock_prices, actions)
+
+HP_A = accumulator(sector, stock_prices, values)
 intentional_reward = []
 reward_total = 0
 env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
 env.reset()
 for i in range(190):
     # select and perform action
-    if np.absolute(HP_A[0,i]) < 0.5:
+    if np.argmax(HP_A[i,:]) == 0:
         action = torch.zeros((1,1),  dtype=torch.float, device=device)
     else:
         action = torch.ones((1,1),  dtype=torch.float, device=device)
-    print(action)
+    print('action: ',action)
     next_position = action
     next_observation, reward, done, info = env.step(action)
     print(info)
