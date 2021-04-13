@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 def step_SA(policy_net, pos, obs):
     with torch.no_grad():
-        return policy_net(pos, obs).max(1)[1].view(1, 1).float()
+        return policy_net(pos, obs).max(1)[1].view(1, 1).float(), policy_net(pos, obs)
 
 
 def accumulator(sector, stock_prices, actions):
@@ -22,19 +22,11 @@ def accumulator(sector, stock_prices, actions):
         corr_coef[i,0] = np.corrcoef(stock_prices[i,:], sector)[0,1]
     
     #print(corr_coef)
-    # calculate actions
-    actions_np = actions.cpu().numpy()
-    #print(actions_np)
-    N_actions = actions_np.shape[1]
-    corr_sum = np.zeros((1,N_actions))
+    # calculate average action values
+    N_values = values.shape[0]
+    corr_sum = np.zeros((N_values,2))
     for i in range(M):
-        #print('current corr_sum')
-        #print(corr_sum)
-        corr_sum = actions_np[i,:] * corr_coef[i,0] + corr_sum
-        #print('actions*corr_coef')
-        #print(actions_np[i,:] * corr_coef[i,0])
-        #print('new corr_sum')
-        #print(corr_sum)
+        corr_sum = values[:,:,i] * corr_coef[i,0] + corr_sum
         
     
     HP_A = corr_sum/(np.sum(corr_coef,0))
