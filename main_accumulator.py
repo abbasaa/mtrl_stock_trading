@@ -17,7 +17,8 @@ from single_agent import *
 from accumulator import *
 
 
-device = torch.device("cpu")
+device = torch.device("cuda")
+num_stocks = 5
 WINDOW = 10
 END_TIME = 200
 num_episodes = 5
@@ -25,26 +26,29 @@ memory = ReplayMemory(256)
 
 
 actions = torch.tensor(())
+actions = actions.to(device)
 # weird bug with start time -- some times these values work and sometimes they cause an error and has to be re-run
 start_time = np.random.randint(10, 1500, size=5)
 #start_time = [50, 120, 210, 310, 600]
 print('Start times for stocks: ',start_time)
-stock_prices = np.zeros((5,200))
+stock_prices = np.zeros((num_stocks,200))
 sector = np.zeros((1,200))
 env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
 sector[0,:] = env.env.prices
 
-for i in range(5):
+for i in range(num_stocks):
     print('Training Agent ',i+1)
     env.reset()
     env = anytrading_torch(device, 'stocks-v0', (start_time[i], start_time[i] + 190), WINDOW)
     stock_prices[i,:] = env.env.prices
     policy_net = learn_policy(env, num_episodes)
+    policy_net = policy_net.to(device)
     env.reset()
     env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
     observation = env.reset()
     position = torch.zeros((1, 1),  dtype=torch.float, device=device)
     action_temp = torch.tensor(())
+    action_temp = action_temp.to(device)
     for j in range(190):
         # select and perform action
         action_new = step_SA(policy_net, position, observation)

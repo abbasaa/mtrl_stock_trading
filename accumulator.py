@@ -23,7 +23,7 @@ def accumulator(sector, stock_prices, actions):
     
     #print(corr_coef)
     # calculate actions
-    actions_np = actions.numpy()
+    actions_np = actions.cpu().numpy()
     #print(actions_np)
     N_actions = actions_np.shape[1]
     corr_sum = np.zeros((1,N_actions))

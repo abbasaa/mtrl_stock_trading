@@ -9,7 +9,7 @@ import torch
 import torch.nn.functional as F
 
 
-device = torch.device("cpu")
+device = torch.device("cuda")
 WINDOW = 10
 END_TIME = 200
 
