@@ -18,7 +18,7 @@ from accumulator import *
 
 
 device = torch.device("cuda")
-num_stocks = 1
+num_stocks = 5
 WINDOW = 10
 END_TIME = 200
 num_episodes = 5
@@ -47,7 +47,7 @@ for i in range(num_stocks):
     env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
     observation = env.reset()
     position = torch.zeros((1, 1),  dtype=torch.float, device=device)
-    for j in range(190):
+    for j in range(189):
         # select and perform action
         action_new, value = step_SA(policy_net, position, observation)
         values[j,:,i] = value.cpu()
@@ -62,7 +62,7 @@ intentional_reward = []
 reward_total = 0
 env = anytrading_torch(device, 'stocks-v0', (10, 200), 10)
 env.reset()
-for i in range(190):
+for i in range(189):
     # select and perform action
     if np.argmax(HP_A[i,:]) == 0:
         action = torch.zeros((1,1),  dtype=torch.float, device=device)
