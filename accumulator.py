@@ -9,7 +9,7 @@ def step_SA(policy_net, pos, obs):
         return policy_net(pos, obs).max(1)[1].view(1, 1).float(), policy_net(pos, obs)
 
 
-def accumulator(sector, stock_prices, actions):
+def accumulator(sector, stock_prices, values):
     # stock prices as MxN (M = # of single agent stocks)
     # sector prices as 1xN
     # HP_SA as MxX

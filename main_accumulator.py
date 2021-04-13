@@ -18,7 +18,7 @@ from accumulator import *
 
 
 device = torch.device("cuda")
-num_stocks = 5
+num_stocks = 1
 WINDOW = 10
 END_TIME = 200
 num_episodes = 5
@@ -50,7 +50,7 @@ for i in range(num_stocks):
     for j in range(190):
         # select and perform action
         action_new, value = step_SA(policy_net, position, observation)
-        values[j,:,i] = value
+        values[j,:,i] = value.cpu()
         next_position = action_new
         next_observation, reward, done, info = env.step(action_new)
         position = next_position
