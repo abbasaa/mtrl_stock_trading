@@ -13,8 +13,8 @@ custom_env = gym.make('stocks-v0',
 s = custom_env.prices
 
 t = np.arange(0, 300)
-imfs = emd.sift.complete_ensemble_sift(s)
-imfs = imfs.T
+imfs = emd.sift.complete_ensemble_sift(s, max_imfs=4)
+imfs = imfs[0].T
 i = len(imfs)
 print("Imfs: ", i)
 fig, axs = plt.subplots(i + 1, 1)
