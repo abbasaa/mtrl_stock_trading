@@ -61,7 +61,7 @@ def run_agents(num_agents, policy_nets, file_names_test):
             position = torch.zeros((1, 1),  dtype=torch.float, device=device)
             for k in range(END_TIME - WINDOW - 1):
                 action_new, value = step_SA(policy_nets[j], position, observation)
-                values[k,:,j,i] = value
+                values[k,:,j,i] = value.cpu()
                 next_position = action_new
                 next_observation, reward, done, info = env.step(action_new)
                 position = next_position
