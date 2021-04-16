@@ -7,13 +7,14 @@ from ReplayMemory import ReplayMemory, Transition
 import random
 import torch
 import torch.nn.functional as F
-import time 
+import time
+from gym_anytrading.datasets import STOCKS_GOOGL
 
 start = time.perf_counter()
-device = torch.device("cuda")
+device = torch.device("cpu")
 WINDOW = 250
 END_TIME = 2000
-env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
+env = anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL,  (WINDOW, END_TIME), WINDOW)
 
 BATCH_SIZE = 128
 GAMMA = 0.995
