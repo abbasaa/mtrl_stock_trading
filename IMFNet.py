@@ -27,7 +27,7 @@ class IMFNet(nn.Module):
         out3, (hn, cn) = self.lstm(out2, (h0, c0))
         # (Window - 1) / 2 x N x 512 -> (Window - 1) / 2 x N x 200
         prediction = self.layer(out3[-1])
-        # Pred: 1
+        # Pred: 1d
         return prediction, hn, cn
 
 

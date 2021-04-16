@@ -14,7 +14,7 @@ device = torch.device("cuda")
 WINDOW = 250
 END_TIME = 2000
 env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
-
+# Hyperparameters
 BATCH_SIZE = 128
 GAMMA = 0.995
 EPS_START = 0.9

@@ -15,9 +15,7 @@ class DQN(nn.Module):
         self.layer1 = nn.Linear(input, hidden)
         # hidden on linear output
         self.layer2 = nn.Linear(hidden, output)
-        # hidden on h1 output + position
-        # self.layer3 = nn.Linear(h2 + 1, output)
-        # output size 1
+        # output size 2
 
         # init pricing net for each imf
         # init h0's

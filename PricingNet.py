@@ -20,6 +20,7 @@ NUM_IMF = 5
 
 CEEMD = CEEMDAN(DTYPE=np.float16, trials=20)
 
+
 class PricingNet(nn.Module):
 
     def __init__(self, prices, window):
@@ -32,7 +33,7 @@ class PricingNet(nn.Module):
         for i in range(NUM_IMF):
             self.imfNets[i] = IMFNet()
         # END_TIME - Window x Num_imfs x window
-        self.imfs = getImfs(prices, window)
+        self.imfs, self.denorm = getImfs(prices, window)
 
 
     def forward(self, prices):
@@ -40,7 +41,11 @@ class PricingNet(nn.Module):
         input1 = self.getBatch(prices)
         output1 = []*NUM_IMF
         for i in range(NUM_IMF):
-            output1[i] = self.imfNets[i](input1[i], self.hn[i], self.cn[i])
+            # N x 1
+            imf_prediction = self.imfNets[i](input1[i], self.hn[i], self.cn[i])
+            for j in range(len(imf_prediction)):
+                imf_prediction[j] = denormalize(imf_prediction[j], self.denorm[prices[j]][0], self.denorm[prices[j]][1])
+            output1[i] = imf_prediction
         # Num IMFs x N
         output1 = torch.cat(output1)
         prediction = self.layer(output1)
@@ -56,6 +61,8 @@ class PricingNet(nn.Module):
         Batch = []*len(prices)
         for i, p in enumerate(prices):
             Batch[i] = self.imfs[p]
+
+
         # Batch N x Num_imfs x window
         Batch = np.stack(Batch)
         Batch = np.swapaxes(Batch, 0, 1)
@@ -67,15 +74,20 @@ class PricingNet(nn.Module):
 def getImfs(prices, window):
     # Prices: 1 x price_count
     END_TIME = len(prices)
+    # Steps = END
     IMFs = [] * (END_TIME - window)
+    denorm = [] * (END_TIME - window)
     for i in range(len(IMFs)):
-        IMFs[i] = CEEMD(prices[i:i+window], max_imf=NUM_IMF-1)
-    # END_TIME - Window x Num_imfs x window
-    return IMFs
+        ceemd_out = CEEMD(prices[i:i+window], max_imf=NUM_IMF-1)
+        denorm[i] = list(zip(list(map(min, ceemd_out)), list(map(max, ceemd_out))))
+        IMFs[i] = np.array(list(map(normalize, ceemd_out)))
+    # IMFs: Steps x Num_imfs x window,
+    # Denorm: Steps x Num_imfs x (min, max)
+    return IMFs, denorm
 
 
 def normalize(x):
-    return (x - min(x)) / (max(x) - min(x)), min(x), max(x)
+    return (x - min(x)) / (max(x) - min(x))
 
 
 def denormalize(y, min_x, max_x):
