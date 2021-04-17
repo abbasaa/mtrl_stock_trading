@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import time 
 
 start = time.perf_counter()
-device = torch.device("cuda")
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 WINDOW = 250
 END_TIME = 2000
 env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)

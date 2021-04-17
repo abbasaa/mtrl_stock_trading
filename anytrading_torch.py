@@ -24,3 +24,6 @@ class anytrading_torch():
 
     def render_all(self):
         self.env.render_all()
+
+    def prices(self):
+        return self.env.prices

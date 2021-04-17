@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import gym
 import gym_anytrading
-from IMFNet import PricingNet, normalize, denormalize
+from IMFNet import IMFNet
+from PricingNet import denormalize, normalize
 from gym_anytrading.datasets import STOCKS_GOOGL
 import torch
 
@@ -38,11 +39,11 @@ fig.tight_layout()
 plt.show()
 """
 
-first = PricingNet()
-y, min_x, max_x = normalize(IMFs[0])
-
+first = IMFNet()
+y = normalize(IMFs[0])
+min_x, max_x = min(IMFs[0]), max(IMFs[0])
 input = torch.tensor(IMFs[0][np.newaxis, np.newaxis, :], dtype=torch.float)
-testpredict, h = first(input, first.h0)
+testpredict = first(input)
 
 x = denormalize(testpredict, min_x, max_x)
 
