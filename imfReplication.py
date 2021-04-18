@@ -47,17 +47,17 @@ model.to(device)
 optimizer = optim.RMSprop(model.parameters())
 criterion = nn.MSELoss()
 
-def eval(doplot):
-    x = imfs[:END_TIME - WINDOW - 1, 0]
-    x = x[:, np.newaxis, :]
+x = imfs[:END_TIME - WINDOW - 1, 0]
+x = x[:, np.newaxis, :]
+x = torch.tensor(x, device=device, dtype=torch.float)
+correct = torch.tensor([imfs[p + 1][0][-1] for p in range(END_TIME - WINDOW - 1)], dtype=torch.float, device=device)
 
-    x = torch.tensor(x, device=device, dtype=torch.float)
+
+def eval(doplot):
     predicted = model(x).squeeze()
     predicted = denormalize(predicted, [j for j in range(END_TIME - WINDOW - 1)])
-    correct = torch.tensor([imfs[p+1][0][-1] for p in range(END_TIME-WINDOW-1)], dtype=torch.float, device=device)
-    l = criterion(predicted, correct)
+    l = criterion(predicted, correct).detach().numpy()
     losses.append(l)
-
     if doplot:
         plt.plot([j for j in range(END_TIME - WINDOW - 1)], predicted.detach().numpy(), 'r')
         plt.plot([j for j in range(END_TIME - WINDOW - 1)], correct.detach().numpy(), 'b')
