@@ -13,13 +13,13 @@ END_TIME = 700
 env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
 prices = env.prices()
 
-EPOCHS = 1
+EPOCHS = 20
 BATCH = 32
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 
 
 def Batch():
-    prices_idx = np.random.randint(0, high=(END_TIME-WINDOW-1) ,size=BATCH)
+    prices_idx = np.random.randint(0, high=(END_TIME-WINDOW-1), size=BATCH)
     labels = []
     for p in prices_idx:
         labels.append(prices[p+WINDOW+1])
@@ -47,9 +47,9 @@ for j in range(EPOCHS):
 
 PricingNet.eval()
 
-x = [j for j in range(32)]
+x = [j for j in range(END_TIME-WINDOW-1)]
 predicted = PricingNet(x)
 #ERROR HERE
 plt.plot(x, predicted.detach().numpy(), 'r')
-plt.plot(x, prices[WINDOW+1:WINDOW+33], 'b')
+plt.plot(x, prices[WINDOW+1:], 'b')
 plt.show()
