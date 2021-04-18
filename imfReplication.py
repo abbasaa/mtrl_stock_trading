@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 WINDOW = 250
 END_TIME = 700
 
-EPOCHS = 1
+EPOCHS = 20
 BATCH = 32
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 
@@ -40,11 +40,29 @@ def denormalize(output, start_times):
     return output*torch.tensor(differences, dtype=torch.float) + torch.tensor(mins, dtype=torch.float)
 
 
+losses = []
 model = IMFNet()
 model.to(device)
 
 optimizer = optim.RMSprop(model.parameters())
 criterion = nn.MSELoss()
+
+def eval(doplot):
+    x = imfs[:END_TIME - WINDOW - 1, 0]
+    x = x[:, np.newaxis, :]
+
+    x = torch.tensor(x, device=device, dtype=torch.float)
+    predicted = model(x).squeeze()
+    predicted = denormalize(predicted, [j for j in range(END_TIME - WINDOW - 1)])
+    correct = torch.tensor([imfs[p+1][0][-1] for p in range(END_TIME-WINDOW-1)], dtype=torch.float, device=device)
+    l = criterion(predicted, correct)
+    losses.append(l)
+
+    if doplot:
+        plt.plot([j for j in range(END_TIME - WINDOW - 1)], predicted.detach().numpy(), 'r')
+        plt.plot([j for j in range(END_TIME - WINDOW - 1)], correct.detach().numpy(), 'b')
+        plt.show()
+
 
 model.train()
 for i in range(EPOCHS):
@@ -59,15 +77,12 @@ for i in range(EPOCHS):
         optimizer.step()
         print("Batch: ", j)
     print("Epoch: ", i)
+    model.eval()
+    eval(i + 1 == EPOCHS)
+    model.train()
 
-model.eval()
-x = imfs[:END_TIME-WINDOW-1, 0]
-x = x[:, np.newaxis, :]
 
-x = torch.tensor(x, device=device, dtype=torch.float)
-predicted = model(x).squeeze()
-predicted = denormalize(predicted, np.arange(END_TIME-WINDOW-1))
-plt.plot([j for j in range(END_TIME-WINDOW-1)], predicted.detach().numpy(), 'r')
-plt.plot([j for j in range(END_TIME-WINDOW-1)], [imfs[p+1][0][-1] for p in range(END_TIME-WINDOW-1)], 'b')
+plt.clf()
+plt.plot([i for i in range(len(losses))], losses)
 plt.show()
 
