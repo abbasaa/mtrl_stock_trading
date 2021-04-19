@@ -20,9 +20,10 @@ class PricingNet(nn.Module):
         self.layer = nn.Linear(NUM_IMF, 1)
         self.batch_size = batch_size
         self.ticker = ticker
-        self.imfNets = []
+        imfList = []
         for i in range(NUM_IMF):
-            self.imfNets.append(IMFNet())
+            imfList.append(IMFNet())
+        self.imfNets = nn.ModuleList(imfList)
         # END_TIME - Window x Num_imfs x window
         self.imfs = np.load(f'IMF/{ticker}_IMF.npy')
         self.denorm = np.load(f'IMF/{ticker}_denorm.npy')

@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from PricingNet import PricingNet
 import numpy as np
+import os
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -13,7 +14,7 @@ END_TIME = 700
 env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
 prices = env.prices()
 
-EPOCHS = 20
+EPOCHS = 80
 BATCH = 32
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 
@@ -29,11 +30,33 @@ def Batch():
 PricingNet = PricingNet("GOOGL", BATCH)
 PricingNet.to(device)
 
-optimizer = optim.RMSprop(PricingNet.parameters())
+optimizer = optim.Adam(PricingNet.parameters())
 criterion = nn.MSELoss()
 
+# load checkpoint if possible
+PATH = os.path.join(os.curdir, "checkpoints")
+epoch_start = 0
+while True:
+    CURPATH = os.path.join(PATH, f"pricenet_{epoch_start}.pth")
+    if not os.path.exists(CURPATH):
+        epoch_start = max(0, epoch_start-1)
+        break
+    epoch_start += 1
+
+if epoch_start != 0:
+    print(f"Loading model from checkpoint at epoch: {epoch_start}")
+    CURPATH = os.path.join(PATH, f"pricenet_{epoch_start}.pth")
+    checkpoint = torch.load(CURPATH)
+    PricingNet.load_state_dict(checkpoint['pricingnet_state_dict'])
+    # for i in range(len(checkpoint['imfnets_state_dicts'])):
+    #     PricingNet.imfNets[i].load_state_dict(checkpoint['imfnets_state_dicts'][i])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+
+cache1 = None
+cache2 = None
+
 PricingNet.train()
-for j in range(EPOCHS):
+for j in range(epoch_start, EPOCHS):
     for k in range(BATCH_NUM):
         optimizer.zero_grad()
         inputs, labels = Batch()
@@ -43,7 +66,20 @@ for j in range(EPOCHS):
         loss.backward(retain_graph=True)
         optimizer.step()
         print("Batch: ", k)
+
+    if cache1 is None:
+        cache1 = PricingNet.imfNets[0].parameters()
+    elif cache2 is None:
+        cache2 = PricingNet.imfNets[0].parameters()
+
     print("Epoch: ", j)
+
+    print(f"Saving checkpoint for Epoch {j} ...")
+    torch.save({
+        'pricingnet_state_dict': PricingNet.state_dict(),
+        # 'imfnets_state_dicts': [imfnet.state_dict for imfnet in PricingNet.imfNets],
+        'optimizer_state_dict': optimizer.state_dict(),
+    }, os.path.join(os.curdir, "checkpoints", f"pricenet_{j}.pth"))
 
 PricingNet.eval()
 
