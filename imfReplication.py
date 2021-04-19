@@ -12,7 +12,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 WINDOW = 250
 END_TIME = 700
 
-EPOCHS = 20
+EPOCHS = 100
 BATCH = 32
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 
@@ -37,14 +37,14 @@ def Batch():
 def denormalize(output, start_times):
     mins = denorm[start_times, 0, 0]
     differences = denorm[start_times, 0, 1] - mins
-    return output*torch.tensor(differences, dtype=torch.float) + torch.tensor(mins, dtype=torch.float)
+    return output*torch.tensor(differences, dtype=torch.float, device=device) + torch.tensor(mins, dtype=torch.float, device=device)
 
 
 losses = []
 model = IMFNet()
 model.to(device)
 
-optimizer = optim.RMSprop(model.parameters())
+optimizer = optim.Adam(model.parameters())
 criterion = nn.MSELoss()
 
 x = imfs[:END_TIME - WINDOW - 1, 0]
@@ -56,11 +56,11 @@ correct = torch.tensor([imfs[p + 1][0][-1] for p in range(END_TIME - WINDOW - 1)
 def eval(doplot):
     predicted = model(x).squeeze()
     predicted = denormalize(predicted, [j for j in range(END_TIME - WINDOW - 1)])
-    l = criterion(predicted, correct).detach().numpy()
+    l = criterion(predicted, correct).detach().cpu().numpy()
     losses.append(l)
     if doplot:
-        plt.plot([j for j in range(END_TIME - WINDOW - 1)], predicted.detach().numpy(), 'r')
-        plt.plot([j for j in range(END_TIME - WINDOW - 1)], correct.detach().numpy(), 'b')
+        plt.plot([j for j in range(END_TIME - WINDOW - 1)], predicted.detach().cpu().numpy(), 'r')
+        plt.plot([j for j in range(END_TIME - WINDOW - 1)], correct.detach().cpu().numpy(), 'b')
         plt.show()
 
 
