@@ -15,10 +15,9 @@ NUM_IMF = 5
 
 class PricingNet(nn.Module):
 
-    def __init__(self, ticker, batch_size):
+    def __init__(self, ticker):
         super(PricingNet, self).__init__()
         self.layer = nn.Linear(NUM_IMF, 1)
-        self.batch_size = batch_size
         self.ticker = ticker
         imfList = []
         for i in range(NUM_IMF):
@@ -34,13 +33,10 @@ class PricingNet(nn.Module):
         output1 = []
         for i in range(NUM_IMF):
             # N x 1
-            imf_prediction = self.imfNets[i](input1[i])
-            # TODO speed up
-            for j in range(len(imf_prediction)):
-                 imf_prediction[j] = denormalize(imf_prediction[j], self.denorm[prices[j]][i][0], self.denorm[prices[j]][i][1])
-            output1.append(imf_prediction)
+            imf_prediction = self.imfNets[i](input1[i]).squeeze()
+            output1.append(self.denormalize(imf_prediction, prices, i).squeeze())
         # Num IMFs x N
-        output1 = torch.stack(output1).squeeze()
+        output1 = torch.stack(output1)
         output1 = torch.transpose(output1, 0, 1)
         prediction = self.layer(output1)
         return prediction
@@ -56,9 +52,10 @@ class PricingNet(nn.Module):
         # Num_imfs x N x 1 x window
         return torch.tensor(Batch, dtype=torch.float)
 
-
-def denormalize(y, min_x, max_x):
-    return y*(max_x - min_x) + min_x
+    def denormalize(self, output, start_times, imf):
+        mins = self.denorm[start_times, imf, 0]
+        differences = self.denorm[start_times, imf, 1] - mins
+        return output * torch.tensor(differences, dtype=torch.float) + torch.tensor(mins, dtype=torch.float)
 
 
 def normalize(x):

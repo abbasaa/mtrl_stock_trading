@@ -1,19 +1,42 @@
 import math
 from anytrading_torch import anytrading_torch
+from gym_anytrading.datasets import STOCKS_GOOGL
 import matplotlib.pyplot as plt
 from DQN import DQN
-import torch.optim as optim
+
 from ReplayMemory import ReplayMemory, Transition
 import random
 import torch
 import torch.nn.functional as F
+import torch.optim as optim
 import time 
 
 start = time.perf_counter()
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+TICKER = 'GOOGL'
+# CHECK DIR FOR FILE IF NOT THROW ERROR/RUN PREPROCESS
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+# READ IN WINDOW and END TIME FROM PREPROCESS
+# Generate DF
+
 WINDOW = 250
-END_TIME = 2000
-env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
+END_TIME = 700
+
+
+env = anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL, (WINDOW, END_TIME), WINDOW)
+
 # Hyperparameters
 BATCH_SIZE = 128
 GAMMA = 0.995
@@ -23,11 +46,12 @@ EPS_DELAY = 2000
 EPS_DECAY = .99975
 TARGET_UPDATE = 10
 
-n_actions = env.action_space.n
-observation_dim = 2
+N_ACTIONS = env.action_space.n
+HIDDEN_DIM = 5
+N_HISTORIC_PRICES = 1
 
-policy_net = DQN(WINDOW, observation_dim, WINDOW//2, WINDOW//4, n_actions)
-target_net = DQN(WINDOW, observation_dim, WINDOW//2, WINDOW//4, n_actions)
+policy_net = DQN(N_HISTORIC_PRICES, HIDDEN_DIM, N_ACTIONS, TICKER)
+target_net = DQN(N_HISTORIC_PRICES, HIDDEN_DIM, N_ACTIONS, TICKER)
 target_net = target_net.to(device)
 policy_net = policy_net.to(device)
 

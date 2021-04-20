@@ -8,7 +8,7 @@ import torch
 class anytrading_torch():
     def __init__(self, device, anytrading_env, stock_data, frame, window_size):
         self.device = device
-        self.env = gym.make(anytrading_env, df = stock_data, frame_bound=frame, window_size=window_size)
+        self.env = gym.make(anytrading_env, df=stock_data, frame_bound=frame, window_size=window_size)
         self.action_space = self.env.action_space
 
     def step(self, action):

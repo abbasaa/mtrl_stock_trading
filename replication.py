@@ -1,4 +1,5 @@
 from anytrading_torch import anytrading_torch
+from gym_anytrading.datasets import STOCKS_GOOGL
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -11,10 +12,10 @@ import os
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 WINDOW = 250
 END_TIME = 700
-env = anytrading_torch(device, 'stocks-v0', (WINDOW, END_TIME), WINDOW)
+env = anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL, (WINDOW, END_TIME), WINDOW)
 prices = env.prices()
 
-EPOCHS = 80
+EPOCHS = 81
 BATCH = 32
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 
@@ -27,7 +28,7 @@ def Batch():
     return prices_idx, labels
 
 
-PricingNet = PricingNet("GOOGL", BATCH)
+PricingNet = PricingNet("GOOGL")
 PricingNet.to(device)
 
 optimizer = optim.Adam(PricingNet.parameters())
