@@ -1,7 +1,7 @@
 import numpy as np
 import gym
 import gym_anytrading
-#from PyEMD import CEEMDAN
+from PyEMD import CEEMDAN
 import pandas as pd
 import os
 import torch
@@ -18,7 +18,7 @@ def import_stock_to_env(file_path):
     return env
 
 
-#CEEMD = CEEMDAN(DTYPE=np.float16, trials=20)
+CEEMD = CEEMDAN(DTYPE=np.float16, trials=20)
 NUM_IMF = 5
 
 
@@ -50,7 +50,7 @@ def getImfs(prices, window, file_name):
 
 WINDOW = 250
 END_TIME = 700
-path = "TEST_STOCKS"
+path = "Tech"
 cwd = os.getcwd()
 os.chdir(path)
 for file in os.listdir():
