@@ -50,8 +50,8 @@ N_ACTIONS = env.action_space.n
 HIDDEN_DIM = 5
 N_HISTORIC_PRICES = 1
 
-PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER)
-TargetNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER)
+PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
+TargetNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = TargetNet.to(device)
 PolicyNet = PolicyNet.to(device)
 

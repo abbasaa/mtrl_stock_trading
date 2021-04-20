@@ -28,7 +28,7 @@ def Batch():
     return prices_idx, labels
 
 
-PricingNet = PricingNet("GOOGL")
+PricingNet = PricingNet("GOOGL", device)
 PricingNet.to(device)
 
 optimizer = optim.Adam(PricingNet.parameters())

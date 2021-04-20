@@ -8,9 +8,9 @@ from PricingNet import PricingNet
 
 class DQN(nn.Module):
 
-    def __init__(self, input_size, hidden_dim, output_size, ticker):
+    def __init__(self, input_size, hidden_dim, output_size, ticker, device):
         super(DQN, self).__init__()
-        self.pricing = PricingNet(ticker)
+        self.pricing = PricingNet(ticker, device)
         self.input_size = input_size
         self.hidden_dim = hidden_dim
         self.output_size = output_size

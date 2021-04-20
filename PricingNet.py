@@ -15,10 +15,11 @@ NUM_IMF = 5
 
 class PricingNet(nn.Module):
 
-    def __init__(self, ticker):
+    def __init__(self, ticker, device):
         super(PricingNet, self).__init__()
         self.layer = nn.Linear(NUM_IMF, 1)
         self.ticker = ticker
+        self.device = device
         imfList = []
         for i in range(NUM_IMF):
             imfList.append(IMFNet())
@@ -50,12 +51,12 @@ class PricingNet(nn.Module):
         Batch = np.swapaxes(Batch, 0, 1)
         Batch = Batch[:, :, np.newaxis, :]
         # Num_imfs x N x 1 x window
-        return torch.tensor(Batch, dtype=torch.float)
+        return torch.tensor(Batch, dtype=torch.float, device=self.device)
 
     def denormalize(self, output, start_times, imf):
         mins = self.denorm[start_times, imf, 0]
         differences = self.denorm[start_times, imf, 1] - mins
-        return output * torch.tensor(differences, dtype=torch.float) + torch.tensor(mins, dtype=torch.float)
+        return output * torch.tensor(differences, dtype=torch.float, device=self.device) + torch.tensor(mins, dtype=torch.float, device=self.device)
 
 
 def normalize(x):
