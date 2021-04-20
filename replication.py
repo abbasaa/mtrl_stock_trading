@@ -49,12 +49,7 @@ if epoch_start != 0:
     CURPATH = os.path.join(PATH, f"pricenet_{epoch_start}.pth")
     checkpoint = torch.load(CURPATH)
     PricingNet.load_state_dict(checkpoint['pricingnet_state_dict'])
-    # for i in range(len(checkpoint['imfnets_state_dicts'])):
-    #     PricingNet.imfNets[i].load_state_dict(checkpoint['imfnets_state_dicts'][i])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
-cache1 = None
-cache2 = None
 
 PricingNet.train()
 for j in range(epoch_start, EPOCHS):
@@ -67,18 +62,11 @@ for j in range(epoch_start, EPOCHS):
         loss.backward(retain_graph=True)
         optimizer.step()
         print("Batch: ", k)
-
-    if cache1 is None:
-        cache1 = PricingNet.imfNets[0].parameters()
-    elif cache2 is None:
-        cache2 = PricingNet.imfNets[0].parameters()
-
     print("Epoch: ", j)
 
     print(f"Saving checkpoint for Epoch {j} ...")
     torch.save({
         'pricingnet_state_dict': PricingNet.state_dict(),
-        # 'imfnets_state_dicts': [imfnet.state_dict for imfnet in PricingNet.imfNets],
         'optimizer_state_dict': optimizer.state_dict(),
     }, os.path.join(os.curdir, "checkpoints", f"pricenet_{j}.pth"))
 
