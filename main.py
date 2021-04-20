@@ -38,7 +38,7 @@ END_TIME = 700
 env = anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL, (WINDOW, END_TIME), WINDOW)
 
 # Hyperparameters
-BATCH_SIZE = 128
+BATCH_SIZE = 32
 GAMMA = 0.995
 EPS_START = 0.9
 EPS_END = 0.05
@@ -50,26 +50,25 @@ N_ACTIONS = env.action_space.n
 HIDDEN_DIM = 5
 N_HISTORIC_PRICES = 1
 
-policy_net = DQN(N_HISTORIC_PRICES, HIDDEN_DIM, N_ACTIONS, TICKER)
-target_net = DQN(N_HISTORIC_PRICES, HIDDEN_DIM, N_ACTIONS, TICKER)
-target_net = target_net.to(device)
-policy_net = policy_net.to(device)
+PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER)
+TargetNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER)
+TargetNet = TargetNet.to(device)
+PolicyNet = PolicyNet.to(device)
 
-target_net.load_state_dict(policy_net.state_dict())
-target_net.eval()
+TargetNet.load_state_dict(PolicyNet.state_dict())
+TargetNet.eval()
 
-optimizer = optim.RMSprop(policy_net.parameters())
+optimizer = optim.RMSprop(PolicyNet.parameters())
 memory = ReplayMemory(256)
 
 
 exploration = []
 intentional_reward = []
-
-
+episode_durations = []
 steps_done = 0
 
 
-def select_action(pos, obs):
+def select_action(position, time_idx, last_price):
     global steps_done
     sample = random.random()
     decay = 1
@@ -79,13 +78,10 @@ def select_action(pos, obs):
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
-            return policy_net(pos, obs).max(1)[1].view(1, 1).float(), True
+            return PolicyNet(position, time_idx, last_price).max(1)[1].view(1, 1).float(), True
     else:
         exploration[-1] += 1
-        return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.float), False
-
-
-episode_durations = []
+        return torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.float), False
 
 
 def plot_durations():
@@ -102,6 +98,7 @@ def plot_durations():
         plt.plot(means.numpy())
     plt.pause(0.001)
 
+# State: (position, time, last_price)
 
 def optimize_model():
     if len(memory) < BATCH_SIZE:
@@ -109,22 +106,26 @@ def optimize_model():
     transitions = memory.sample(BATCH_SIZE)
     batch = Transition(*zip(*transitions))
 
+
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                             batch.next_state)), device=device, dtype=torch.bool)
     non_final_next_positions = torch.cat([s[0] for s in batch.next_state if s is not None])
-    non_final_next_observations = torch.cat([s[1] for s in batch.next_state if s is not None])
+    non_final_next_times = [s[1] for s in batch.next_state if s is not None]
+    non_final_next_last_prices = torch.cat([s[2] for s in batch.next_state if s is not None])
+
     state_batch = list(zip(*batch.state))
     position_batch = torch.cat(state_batch[0])
-    observation_batch = torch.cat(state_batch[1])
+    times_batch = list(state_batch[1])
+    last_price_batch = torch.cat(state_batch[2])
+
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
 
-    state_action_values = policy_net(position_batch,
-                                     observation_batch).gather(1, action_batch.long())
-
+    state_action_values = PolicyNet(position_batch, times_batch,
+                                    last_price_batch).gather(1, action_batch.long())
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values[non_final_mask] = target_net(non_final_next_positions,
-                                                   non_final_next_observations).max(1)[0].detach()
+    next_state_values[non_final_mask] = TargetNet(non_final_next_positions, non_final_next_times,
+                                                  non_final_next_last_prices).max(1)[0].detach()
 
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
@@ -132,31 +133,38 @@ def optimize_model():
 
     optimizer.zero_grad()
     loss.backward()
-    for param in policy_net.parameters():
+    for param in PolicyNet.parameters():
         param.grad.data.clamp(-1, 1)
     optimizer.step()
 
 
-num_episodes = 300
-for i_episode in range(num_episodes):
+NUM_EPISODES = 300
+for i_episode in range(NUM_EPISODES):
+    print("EPISODE: ", i_episode)
     # Initialize the environment and state
     exploration.append(0)
     observation = env.reset()
     position = torch.zeros((1, 1),  dtype=torch.float, device=device)
+    print("[0]", end='', flush=True)
     t = 0
     while True:
         t += 1
         # select and perform action
-        action, exploit = select_action(position, observation)
+        action, exploit = select_action(position, [t], observation[:, -1, 0])
         next_position = action
         next_observation, reward, done, info = env.step(action)
 
-        memory.push((position, observation), action, (next_position, next_observation), reward)
+        memory.push((position, t, observation[:, -1, 0]), action, (next_position, t+1, next_observation[:, -1, 0]), reward)
 
         optimize_model()
 
         position = next_position
         observation = next_observation
+        if t % 100 == 0:
+            print(f"[{t}]", end='', flush=True)
+        if t % 11 == 0:
+            print("=", end='', flush=True)
+
         if exploit and reward != 0:
             intentional_reward.append(reward[0].item())
 
@@ -166,14 +174,14 @@ for i_episode in range(num_episodes):
             print(i_episode, " info:", info, " action:", action)
             break
     if i_episode % TARGET_UPDATE == 0:
-        target_net.load_state_dict(policy_net.state_dict())
+        TargetNet.load_state_dict(PolicyNet.state_dict())
 
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
 
 fig, ax = plt.subplots()
 exploration = [e / (END_TIME - WINDOW) for e in exploration]
-ax.plot(list(range(num_episodes)), exploration)
+ax.plot(list(range(NUM_EPISODES)), exploration)
 ax.set_title("Exploration vs episodes")
 plt.show()
 

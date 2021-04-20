@@ -12,7 +12,7 @@ prices = STOCKS_GOOGL.loc[:, 'Close'].to_numpy()
 def Batch(size):
     time_indices = np.random.randint(0, high=449, size=size)
     last_prices = torch.tensor(prices[time_indices + 1], dtype=torch.float)
-    positions = torch.randint(low=0, high=2, size=(size, ), dtype=torch.float)
+    positions = torch.randint(low=0, high=2, size=(size, 1, 1), dtype=torch.float)
     return positions, time_indices, last_prices
 
 

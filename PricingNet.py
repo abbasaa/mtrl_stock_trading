@@ -33,8 +33,8 @@ class PricingNet(nn.Module):
         output1 = []
         for i in range(NUM_IMF):
             # N x 1
-            imf_prediction = self.imfNets[i](input1[i]).squeeze()
-            output1.append(self.denormalize(imf_prediction, prices, i).squeeze())
+            imf_prediction = self.imfNets[i](input1[i]).squeeze(dim=1)
+            output1.append(self.denormalize(imf_prediction, prices, i))
         # Num IMFs x N
         output1 = torch.stack(output1)
         output1 = torch.transpose(output1, 0, 1)
