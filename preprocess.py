@@ -49,7 +49,7 @@ def getImfs(prices, window, file_name):
 
 
 WINDOW = 250
-END_TIME = 700
+END_TIME = 755
 path = "Tech"
 cwd = os.getcwd()
 os.chdir(path)
