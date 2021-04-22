@@ -69,6 +69,7 @@ memory = ReplayMemory(REPLAY_SIZE)
 
 # load checkpoint if possible
 EPISODE_START = 0
+steps_done = 0
 while True:
     checkpoint_path = os.path.join(os.curdir, 'checkpoints', f'dqn_{EPISODE_START}.pth')
     if not os.path.isfile(checkpoint_path):
@@ -83,6 +84,7 @@ if EPISODE_START != 0:
     PolicyNet.load_state_dict(checkpoint['dqn_state_dict'])
     TargetNet.load_state_dict(checkpoint['dqn_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    steps_done = EPISODE_START * (END_TIME - WINDOW)
 else:
     TargetNet.load_state_dict(PolicyNet.state_dict())
 TargetNet.eval()
@@ -90,10 +92,12 @@ TargetNet.eval()
 # Data Tracking
 exploration = []
 intentional_reward = []
-episode_durations = []
+train_reward = []
+eval_reward = []
+train_profit = []
+eval_profit = []
 highest_reward = float('-inf')
 highest_profit = float('-inf')
-steps_done = 0
 
 
 def select_action(positions, time_idx, last_price):
@@ -172,6 +176,8 @@ def eval_model():
                 break
     mean_reward /= K_folds
     mean_profit /= K_folds
+    eval_reward.append(mean_reward)
+    eval_profit.append(mean_profit)
     global highest_reward
     global highest_profit
     if mean_reward > highest_reward:
@@ -222,6 +228,8 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
         if done:
             print()
             print(i_episode, " info:", info, " action:", action)
+            train_profit.append(info['total_profit'])
+            train_reward.append(info['total_reward'])
             break
 
     if i_episode % TARGET_UPDATE == 0:
@@ -243,13 +251,29 @@ fig, ax = plt.subplots()
 exploration = [e / (END_TIME - WINDOW) for e in exploration]
 ax.plot(list(range(NUM_EPISODES)), exploration)
 ax.set_title("Exploration vs episodes")
-plt.show()
+fig.savefig(f'Exploration_{TICKER}.png')
 
 fig2, ax2 = plt.subplots()
 ax2.plot(list(range(len(intentional_reward))), intentional_reward)
-ax2.set_title("Intentional reward over time")
-plt.show()
+ax2.set_title("Intentional Reward vs Time")
+fig2.savefig(f'Intentional_Reward_{TICKER}.png')
+
+fig3, ax3 = plt.subplots()
+ax3.plot([r for r in range(len(train_reward))], train_reward, 'r', label="train")
+ax3.plot([r*EVAL for r in range(len(eval_reward))], eval_reward, 'b', label="eval")
+ax3.set_title("Total Reward vs Episodes")
+handles, labels = ax3.get_legend_handles_labels()
+ax3.legend(handles, labels)
+fig3.savefig(f'Reward_{TICKER}.png')
+
+fig4, ax4 = plt.subplots()
+ax4.plot([p for p in range(len(train_profit))], train_reward, 'r', label="train")
+ax4.plot([p*EVAL for p in range(len(eval_profit))], eval_reward, 'b', label="eval")
+ax4.set_title("Total Reward vs Episodes")
+handles, labels = ax4.get_legend_handles_labels()
+ax4.legend(handles, labels)
+fig4.savefig(f'Profit_{TICKER}.png')
 
 env.render_all()
-plt.title("DQN After 300 Episodes")
-plt.show()
+plt.title(f"DQN After {NUM_EPISODES} Episodes")
+plt.savefig('Environment.png')
