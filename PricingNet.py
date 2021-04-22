@@ -1,15 +1,16 @@
+import os
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-from IMFNet import IMFNet
 
+from IMFNet import IMFNet
 
 NUM_FILTERS = 512
 KERNEL_SIZE = 2
 MAX_POOL_SIZE = 2
 LSTM_UNITS = 200
 N_LAYERS = 1
-
 NUM_IMF = 5
 
 
@@ -25,8 +26,8 @@ class PricingNet(nn.Module):
             imfList.append(IMFNet())
         self.imfNets = nn.ModuleList(imfList)
         # END_TIME - Window x Num_imfs x window
-        self.imfs = np.load(f'IMF/{ticker}_IMF.npy')
-        self.denorm = np.load(f'IMF/{ticker}_denorm.npy')
+        self.imfs = np.load(os.path.join(os.curdir, 'IMF', f'{ticker}_IMF.npy'))
+        self.denorm = np.load(os.path.join(os.curdir, 'IMF', f'{ticker}_denorm.npy'))
 
     def forward(self, prices):
         # prices: N x 1

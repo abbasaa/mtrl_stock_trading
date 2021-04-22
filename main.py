@@ -1,41 +1,41 @@
 import math
-from anytrading_torch import anytrading_torch
-from gym_anytrading.datasets import STOCKS_GOOGL
-import matplotlib.pyplot as plt
-from DQN import DQN
-
-from ReplayMemory import ReplayMemory, Transition
+import os
 import random
+import time
+
+# from gym_anytrading.datasets import STOCKS_GOOGL
+import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import time 
+
+from anytrading_torch import anytrading_torch
+from DQN import DQN
+from preprocess import import_stock_to_env, getimfs
+from ReplayMemory import ReplayMemory, Transition
 
 start = time.perf_counter()
-
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-TICKER = 'GOOGL'
-# CHECK DIR FOR FILE IF NOT THROW ERROR/RUN PREPROCESS
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-# READ IN WINDOW and END TIME FROM PREPROCESS
-# Generate DF
-
+TICKER = 'GOOGL'  # TODO: make this an argument
+DATA_DIR = 'Tech'
 WINDOW = 250
-END_TIME = 700
+END_TIME = 755
 
+# CHECK DIR FOR FILE IF NOT THROW ERROR/RUN PREPROCESS
+imf_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_IMF.npy')
+denorm_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_denorm.npy')
+data_file = os.path.join(os.curdir, DATA_DIR, f'{TICKER}.csv')
+env = import_stock_to_env(data_file)
+stock_prices = env.env.prices
 
-env = anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL, (WINDOW, END_TIME), WINDOW)
+if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
+    print(f'IMF or denorm file missing for stock: {TICKER}')
+    getimfs(stock_prices, WINDOW, data_file[:-4])
+    print(f'Preprocessing for stock: {TICKER} complete ...')
+# TODO: should we read in window and end time for preprocess ?
+
+env = anytrading_torch(device, 'stocks-v0', stock_prices, (WINDOW, END_TIME), WINDOW)
 
 # Hyperparameters
 BATCH_SIZE = 32
@@ -54,14 +54,29 @@ PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = TargetNet.to(device)
 PolicyNet = PolicyNet.to(device)
-
-TargetNet.load_state_dict(PolicyNet.state_dict())
-TargetNet.eval()
-
-optimizer = optim.RMSprop(PolicyNet.parameters())
+optimizer = optim.Adam(PolicyNet.parameters())
 memory = ReplayMemory(256)
 
+# load checkpoint if possible
+EPISODE_START = 0
+while True:
+    checkpoint_path = os.path.join(os.curdir, 'checkpoints', f'dqn_{EPISODE_START}.pth')
+    if not os.path.isfile(checkpoint_path):
+        EPISODE_START = max(0, EPISODE_START-1)
+        break
+    EPISODE_START += 1
 
+if EPISODE_START != 0:
+    print(f'Loading model from checkpoint at episode: {EPISODE_START}')
+    checkpoint_path = os.path.join(os.curdir, 'checkpoints', f'dqn_{EPISODE_START}.pth')
+    checkpoint = torch.load(checkpoint_path)
+    PolicyNet.load_state_dict(checkpoint['dqn_state_dict'])
+    TargetNet.load_state_dict(checkpoint['dqn_state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+else:
+    TargetNet.load_state_dict(PolicyNet.state_dict())
+
+TargetNet.eval()
 exploration = []
 intentional_reward = []
 episode_durations = []
@@ -99,6 +114,7 @@ def plot_durations():
     plt.pause(0.001)
 
 # State: (position, time, last_price)
+
 
 def optimize_model():
     if len(memory) < BATCH_SIZE:
@@ -139,7 +155,7 @@ def optimize_model():
 
 
 NUM_EPISODES = 300
-for i_episode in range(NUM_EPISODES):
+for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
     exploration.append(0)
@@ -175,6 +191,13 @@ for i_episode in range(NUM_EPISODES):
             break
     if i_episode % TARGET_UPDATE == 0:
         TargetNet.load_state_dict(PolicyNet.state_dict())
+
+    # save checkpoint
+    print(f'Saving checkpoint for Episode {i_episode} ...')
+    torch.save({
+        'dqn_state_dict': PolicyNet.state_dict(),
+        'optimizer_state_dict': optimizer.state_dict(),
+    }, os.path.join(os.curdir, 'checkpoints', f'dqn_{i_episode}.pth'))
 
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
