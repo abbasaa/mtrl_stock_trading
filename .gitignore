@@ -1,6 +1,6 @@
 venv
 .idea
-./IMF/
+IMF/
 .vscode
 __pycache__
 checkpoints
