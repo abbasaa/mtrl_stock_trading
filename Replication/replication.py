@@ -1,4 +1,3 @@
-from anytrading_torch import anytrading_torch
 from gym_anytrading.datasets import STOCKS_GOOGL
 import matplotlib.pyplot as plt
 import torch
@@ -11,17 +10,33 @@ import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 WINDOW = 250
-END_TIME = 700
-env = anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL, (WINDOW, END_TIME), WINDOW)
-prices = env.prices()
+END_TIME = 600
+EVAL_END = 700
+prices = STOCKS_GOOGL.loc[:, 'Low'].to_numpy()[:EVAL_END]
 
-EPOCHS = 81
+EPOCHS = 85
 BATCH = 32
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 
 
-def Batch():
-    prices_idx = np.random.randint(0, high=(END_TIME-WINDOW-1), size=BATCH)
+training_loss = []
+eval_loss = []
+
+def eval_model():
+    p, l = Batch(True)
+    PricingNet.eval()
+    PricingNet.zero_grad()
+    out = PricingNet(p)
+    eloss = criterion(out.squeeze(), torch.tensor(l, dtype=torch.float, device=device)).detach().cpu().numpy()
+    eval_loss.append(eloss)
+    PricingNet.train()
+
+
+def Batch(evaluate):
+    if evaluate:
+        prices_idx = np.arange(END_TIME, EVAL_END-1),
+    else:
+        prices_idx = np.random.randint(0, high=(END_TIME-WINDOW-1), size=BATCH)
     labels = []
     for p in prices_idx:
         labels.append(prices[p+WINDOW+1])
@@ -55,11 +70,14 @@ PricingNet.train()
 for j in range(epoch_start, EPOCHS):
     for k in range(BATCH_NUM):
         optimizer.zero_grad()
-        inputs, labels = Batch()
+        inputs, labels = Batch(False)
         PricingNet.zero_grad()
         output = PricingNet(inputs)
         loss = criterion(output.squeeze(), torch.tensor(labels, dtype=torch.float, device=device))
+        training_loss.append(loss.detach().cpu().numpy())
         loss.backward(retain_graph=True)
+        for param in PricingNet.parameters():
+            param.grad.data.clamp(-1, 1)
         optimizer.step()
         print("Batch: ", k)
     print("Epoch: ", j)
@@ -72,9 +90,14 @@ for j in range(epoch_start, EPOCHS):
 
 PricingNet.eval()
 
+plt.plot(np.arange(len(training_loss)), training_loss, 'r', label='train')
+plt.plot(np.arange(len(eval_loss), step=BATCH_NUM), eval_loss, 'b', label='eval')
+handles, label = plt.get_legend_handles_labels()
+plt.legend(handles, labels)
+
+plt.cla()
 x = [j for j in range(END_TIME-WINDOW-1)]
 predicted = PricingNet(x)
-#ERROR HERE
 plt.plot(x, predicted.detach().numpy(), 'r')
 plt.plot(x, prices[WINDOW+1:], 'b')
 plt.show()
