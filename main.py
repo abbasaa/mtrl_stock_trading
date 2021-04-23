@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+import pandas as pd
 
 from anytrading_torch import anytrading_torch
 from DQN import DQN
@@ -26,8 +27,8 @@ END_TIME = 755
 imf_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_IMF.npy')
 denorm_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_denorm.npy')
 data_file = os.path.join(os.curdir, DATA_DIR, f'{TICKER}.csv')
-env = import_stock_to_env(data_file)
-stock_prices = env.env.prices
+stock_prices = pd.read_csv(data_file)
+
 
 if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
     print(f'IMF or denorm file missing for stock: {TICKER}')
