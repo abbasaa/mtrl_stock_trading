@@ -5,8 +5,6 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import os
-import sys
-sys.path.append('..')
 from PricingNet import PricingNet
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -93,11 +91,11 @@ PricingNet.eval()
 
 plt.plot(np.arange(len(training_loss)), training_loss, 'r', label='train')
 plt.plot(np.arange(len(eval_loss), step=BATCH_NUM), eval_loss, 'b', label='eval')
-handles, label = plt.get_legend_handles_labels()
-plt.legend(handles, labels)
+plt.legend()
+plt.show()
 
 plt.cla()
-x = [j for j in range(END_TIME-WINDOW-1)]
+x = [j for j in range(EVAL_END-WINDOW-1)]
 predicted = PricingNet(x)
 plt.plot(x, predicted.detach().numpy(), 'r')
 plt.plot(x, prices[WINDOW+1:], 'b')
