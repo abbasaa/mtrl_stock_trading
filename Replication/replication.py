@@ -3,10 +3,11 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from PricingNet import PricingNet
 import numpy as np
 import os
-
+import sys
+sys.path.append('..')
+from PricingNet import PricingNet
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 WINDOW = 250
