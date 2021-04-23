@@ -13,7 +13,6 @@ from anytrading_torch import anytrading_torch
 from DQN import DQN
 from preprocess import import_stock_to_env, getimfs
 from ReplayMemory import ReplayMemory, Transition
-from gym_anytrading.datasets import STOCKS_GOOGL
 
 start = time.perf_counter()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,7 +41,7 @@ K_folds = 5
 eval_envs = []
 fold_length = (END_TIME - WINDOW) // K_folds
 for i in range(K_folds):
-    eval_envs.append(anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL,
+    eval_envs.append(anytrading_torch(device, 'stocks-v0', stock_prices,
                                       (WINDOW + i*fold_length, WINDOW + (i+1)*fold_length), WINDOW))
 
 # Hyperparameters
