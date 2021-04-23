@@ -21,7 +21,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TICKER = sys.argv[1]
 DATA_DIR = 'Tech'
 WINDOW = 250
-END_TIME = 755
+END_TIME = 754
 
 # CHECK DIR FOR FILE IF NOT THROW ERROR/RUN PREPROCESS
 imf_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_IMF.npy')
@@ -52,7 +52,7 @@ GAMMA = 0.995
 EPS_START = 0.9
 EPS_END = 0.05
 EPS_DELAY = 8000
-EPS_DECAY = .99975
+EPS_DECAY = .99995
 TARGET_UPDATE = 10
 EVAL = 10
 
@@ -81,7 +81,7 @@ while True:
 
 if EPISODE_START != 0:
     print(f'Loading model from checkpoint at episode: {EPISODE_START}')
-    checkpoint_path = os.path.join(os.curdir, 'checkpoints', f'dqn_{EPISODE_START}.pth')
+    checkpoint_path = os.path.join(os.curdir, 'checkpoints', TICKER, f'dqn_{EPISODE_START}.pth')
     checkpoint = torch.load(checkpoint_path)
     PolicyNet.load_state_dict(checkpoint['dqn_state_dict'])
     TargetNet.load_state_dict(checkpoint['dqn_state_dict'])
@@ -107,7 +107,7 @@ def select_action(positions, time_idx, last_price):
     sample = random.random()
     decay = 1
     if steps_done > EPS_DELAY:
-        decay = math.pow(EPS_DECAY, steps_done)
+        decay = math.pow(EPS_DECAY, steps_done - EPS_DELAY)
     eps_threshold = EPS_END + (EPS_START - EPS_END) * decay
     steps_done += 1
     if sample > eps_threshold:
@@ -195,7 +195,7 @@ def eval_model():
         }, os.path.join(os.curdir, 'models', f'dqn_profit_{TICKER}.pth'))
 
 
-NUM_EPISODES = 25
+NUM_EPISODES = 20
 for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
@@ -279,4 +279,4 @@ fig4.savefig(f'Profit_{TICKER}.png')
 plt.cla()
 env.render_all()
 plt.title(f"DQN After {NUM_EPISODES} Episodes")
-plt.savefig('Environment.png')
+plt.savefig(f'Environment_{TICKER}.png')
