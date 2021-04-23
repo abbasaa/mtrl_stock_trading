@@ -51,7 +51,7 @@ BATCH_SIZE = 128
 GAMMA = 0.995
 EPS_START = 0.9
 EPS_END = 0.05
-EPS_DELAY = 2000
+EPS_DELAY = 8000
 EPS_DECAY = .99975
 TARGET_UPDATE = 10
 EVAL = 10
@@ -195,7 +195,7 @@ def eval_model():
         }, os.path.join(os.curdir, 'models', f'dqn_profit_{TICKER}.pth'))
 
 
-NUM_EPISODES = 5
+NUM_EPISODES = 25
 for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
@@ -276,7 +276,7 @@ ax4.set_title("Total Reward vs Episodes")
 handles, labels = ax4.get_legend_handles_labels()
 ax4.legend(handles, labels)
 fig4.savefig(f'Profit_{TICKER}.png')
-
+plt.cla()
 env.render_all()
 plt.title(f"DQN After {NUM_EPISODES} Episodes")
 plt.savefig('Environment.png')
