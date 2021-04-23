@@ -164,7 +164,6 @@ def eval_model():
         pos = torch.zeros((1, 1),  dtype=torch.float, device=device)
         t_step = -1
         while True:
-            print(t_step)
             t_step += 1
             with torch.no_grad():
                 act = PolicyNet(pos, [t_step], obs[:, -1, 0]).max(1)[1].view(1, 1).float()
@@ -249,12 +248,12 @@ print(f"Completed execution in: {stop - start:0.4f} seconds")
 
 fig, ax = plt.subplots()
 exploration = [e / (END_TIME - WINDOW) for e in exploration]
-ax.plot(list(range(NUM_EPISODES)), exploration)
+ax.plot([e for e in range(len(exploration))], exploration)
 ax.set_title("Exploration vs episodes")
 fig.savefig(f'Exploration_{TICKER}.png')
 
 fig2, ax2 = plt.subplots()
-ax2.plot(list(range(len(intentional_reward))), intentional_reward)
+ax2.plot([i for i in range(len(intentional_reward))], intentional_reward)
 ax2.set_title("Intentional Reward vs Time")
 fig2.savefig(f'Intentional_Reward_{TICKER}.png')
 
