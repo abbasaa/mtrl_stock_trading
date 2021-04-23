@@ -70,8 +70,10 @@ memory = ReplayMemory(REPLAY_SIZE)
 # load checkpoint if possible
 EPISODE_START = 0
 steps_done = 0
+if not os.path.isdir(os.path.join(os.curdir, TICKER)):
+    os.mkdir(os.path.join(os.curdir, 'checkpoints', TICKER))
 while True:
-    checkpoint_path = os.path.join(os.curdir, 'checkpoints', f'dqn_{EPISODE_START}.pth')
+    checkpoint_path = os.path.join(os.curdir, 'checkpoints', TICKER, f'dqn_{EPISODE_START}.pth')
     if not os.path.isfile(checkpoint_path):
         EPISODE_START = max(0, EPISODE_START-1)
         break
@@ -238,10 +240,12 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
 
     # save checkpoint
     print(f'Saving checkpoint for Episode {i_episode} ...')
+    if not os.path.isdir(os.path.join(os.curdir, TICKER)):
+        os.mkdir(os.path.join(os.curdir, 'checkpoints', TICKER))
     torch.save({
         'dqn_state_dict': PolicyNet.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, os.path.join(os.curdir, 'checkpoints', f'dqn_{i_episode}.pth'))
+    }, os.path.join(os.curdir, 'checkpoints', TICKER, f'dqn_{i_episode}.pth'))
 
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
