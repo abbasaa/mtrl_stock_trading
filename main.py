@@ -70,7 +70,7 @@ memory = ReplayMemory(REPLAY_SIZE)
 # load checkpoint if possible
 EPISODE_START = 0
 steps_done = 0
-if not os.path.isdir(os.path.join(os.curdir, TICKER)):
+if not os.path.isdir(os.path.join(os.curdir,'checkpoints', TICKER)):
     os.mkdir(os.path.join(os.curdir, 'checkpoints', TICKER))
 while True:
     checkpoint_path = os.path.join(os.curdir, 'checkpoints', TICKER, f'dqn_{EPISODE_START}.pth')
@@ -195,7 +195,7 @@ def eval_model():
         }, os.path.join(os.curdir, 'models', f'dqn_profit_{TICKER}.pth'))
 
 
-NUM_EPISODES = 300
+NUM_EPISODES = 5
 for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
@@ -240,7 +240,7 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
 
     # save checkpoint
     print(f'Saving checkpoint for Episode {i_episode} ...')
-    if not os.path.isdir(os.path.join(os.curdir, TICKER)):
+    if not os.path.isdir(os.path.join(os.curdir,'checkpoints', TICKER)):
         os.mkdir(os.path.join(os.curdir, 'checkpoints', TICKER))
     torch.save({
         'dqn_state_dict': PolicyNet.state_dict(),
