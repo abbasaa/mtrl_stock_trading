@@ -21,7 +21,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TICKER = sys.argv[1]
 DATA_DIR = 'Tech'
 WINDOW = 250
-END_TIME = 700
+END_TIME = 755
 
 # CHECK DIR FOR FILE IF NOT THROW ERROR/RUN PREPROCESS
 imf_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_IMF.npy')
@@ -37,7 +37,7 @@ if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
 # TODO: should we read in window and end time for preprocess ?
 
 # Prepare Training and Evaluation Environments
-env = anytrading_torch(device, 'stocks-v0', STOCKS_GOOGL, (END_TIME - 3, END_TIME), WINDOW)
+env = anytrading_torch(device, 'stocks-v0', stock_prices, (END_TIME - 3, END_TIME), WINDOW)
 K_folds = 5
 eval_envs = []
 fold_length = (END_TIME - WINDOW) // K_folds
