@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import os
+import sys
+sys.path.append('./Replication/..')
 from PricingNet import PricingNet
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -13,8 +15,8 @@ END_TIME = 600
 EVAL_END = 700
 prices = STOCKS_GOOGL.loc[:, 'Low'].to_numpy()[:EVAL_END]
 
-EPOCHS = 85
-BATCH = 32
+EPOCHS = 40
+BATCH = 64
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 
 
@@ -22,18 +24,18 @@ training_loss = []
 eval_loss = []
 
 def eval_model():
-    p, l = Batch(True)
+    pe, le = Batch(True)
     PricingNet.eval()
     PricingNet.zero_grad()
-    out = PricingNet(p)
-    eloss = criterion(out.squeeze(), torch.tensor(l, dtype=torch.float, device=device)).detach().cpu().numpy()
+    out = PricingNet(pe)
+    eloss = criterion(out.squeeze(), torch.tensor(le, dtype=torch.float, device=device)).detach().cpu().numpy()
     eval_loss.append(eloss)
     PricingNet.train()
 
 
 def Batch(evaluate):
     if evaluate:
-        prices_idx = np.arange(END_TIME, EVAL_END-1),
+        prices_idx = np.arange(END_TIME-WINDOW, EVAL_END-WINDOW-1)
     else:
         prices_idx = np.random.randint(0, high=(END_TIME-WINDOW-1), size=BATCH)
     labels = []
@@ -80,6 +82,7 @@ for j in range(epoch_start, EPOCHS):
         optimizer.step()
         print("Batch: ", k)
     print("Epoch: ", j)
+    eval_model()
 
     print(f"Saving checkpoint for Epoch {j} ...")
     torch.save({
@@ -89,14 +92,16 @@ for j in range(epoch_start, EPOCHS):
 
 PricingNet.eval()
 
-plt.plot(np.arange(len(training_loss)), training_loss, 'r', label='train')
-plt.plot(np.arange(len(eval_loss), step=BATCH_NUM), eval_loss, 'b', label='eval')
-plt.legend()
-plt.show()
+fig, ax = plt.subplots()
+ax.plot(np.arange(len(training_loss)), training_loss, 'r', label='train')
+ax.plot(np.arange(len(training_loss), step=BATCH_NUM), eval_loss, 'b', label='eval')
+ax.legend()
+fig.savefig('TrainEvalPNet.png')
 
-plt.cla()
 x = [j for j in range(EVAL_END-WINDOW-1)]
-predicted = PricingNet(x)
-plt.plot(x, predicted.detach().numpy(), 'r')
-plt.plot(x, prices[WINDOW+1:], 'b')
-plt.show()
+with torch.no_grad():
+    predicted = PricingNet(x).detach().cpu().numpy()
+fig, ax = plt.subplots()
+ax.plot(x, predicted, 'r')
+ax.plot(x, prices[WINDOW+1:], 'b')
+fig.savefig('Prediction.png')
