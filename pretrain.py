@@ -36,28 +36,42 @@ if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
     getimfs(stock_prices, WINDOW, data_file[:-4])
     print(f'Preprocessing for stock: {TICKER} complete ...')
 
-EPOCH_START = 0
-if not os.path.isdir(os.path.join(os.curdir, 'checkpoints', TICKER)):
-    os.mkdir(os.path.join(os.curdir, 'checkpoints', TICKER))
-if not os.path.isdir(os.path.join(os.curdir, 'models', TICKER)):
-    os.mkdir(os.path.join(os.curdir, 'models', TICKER))
-while True:
-    checkpoint_path = os.path.join(os.curdir, 'checkpoints', TICKER, f'pricingnet_{EPOCH_START}.pth')
-    if not os.path.isfile(checkpoint_path):
-        EPOCH_START = max(0, EPOCH_START-1)
-        break
-    EPOCH_START += 1
+# make model folders
+models_dir = os.path.join(os.curdir, 'models')
+if not os.path.isdir(models_dir):
+    os.mkdir(models_dir)
+models_dir = os.path.join(models_dir, TICKER)
+if not os.path.isdir(models_dir):
+    os.mkdir(models_dir)
 
-if EPOCH_START != 0:
-    print(f'Loading model from checkpoint at episode: {EPOCH_START}')
-    checkpoint_path = os.path.join(os.curdir, 'checkpoints', TICKER, f'pricingnet_{EPOCH_START}.pth')
-    checkpoint = torch.load(checkpoint_path)
-    model.load_state_dict(checkpoint['pricing_state_dict'])
+EPOCH_START = 0
+# makes checkpoint folders
+checkpoints_dir = os.path.join(os.curdir, 'checkpoints')
+if not os.path.isdir(checkpoints_dir):
+    os.mkdir(checkpoints_dir)
+checkpoints_dir = os.path.join(checkpoints_dir, 'pricingnet')
+if not os.path.isdir(checkpoints_dir):
+    os.mkdir(checkpoints_dir)
+checkpoints_dir = os.path.join(checkpoints_dir, TICKER)
+if not os.path.isdir(checkpoints_dir):
+    os.mkdir(checkpoints_dir)
+checkpoint_files = [f for f in os.listdir(checkpoints_dir) if os.path.isfile(os.path.join(checkpoints_dir, f))]
+if len(checkpoint_files) != 0:
+    max_epoch = -2 ** 32
+    for file in checkpoint_files:
+        cur_epoch = int(file.split('.')[1])
+        if cur_epoch > max_epoch:
+            max_epoch = cur_epoch
+    EPOCH_START = max_epoch
+    print(f'Loading pricingnet from checkpoint at epoch: {max_epoch}')
+    checkpoint_file = os.path.join(checkpoints_dir, f'pricingnet.{max_epoch}.pth')
+    checkpoint = torch.load(checkpoint_file)
+    model.load_state_dict(checkpoint['pricingnet_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
 
 BATCH = 64
 K_folds = 5
-EPOCHS = 41
+EPOCHS = 7
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 EVAL_SIZE = (END_TIME - WINDOW - 1)//K_folds
 EVAL_INTERVAL = 4
@@ -92,8 +106,8 @@ def eval_model():
     if eloss < lowest_loss:
         print('Saving Best Model ...')
         torch.save({
-            'pricing_state_dict': model.state_dict(),
-        }, os.path.join(os.curdir, 'models', TICKER, f'pricingnet.pth'))
+            'pricingnet_state_dict': model.state_dict(),
+        }, os.path.join(models_dir, f'pricingnet.pth'))
 
 
 model.train()
@@ -116,12 +130,12 @@ for i in range(EPOCH_START, EPOCHS):
 
     print(f"Saving checkpoint for Epoch {i} ...")
     torch.save({
-        'pricing_state_dict': model.state_dict(),
+        'pricingnet_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, os.path.join(os.curdir, "checkpoints",  TICKER, f"pricingnet_{i}.pth"))
+    }, os.path.join(checkpoints_dir, f"pricingnet.{i}.pth"))
 
 best_model_path = os.path.join(os.curdir, 'models', TICKER, f'pricingnet.pth')
-model.load_state_dict(torch.load(best_model_path)['pricing_state_dict'])
+model.load_state_dict(torch.load(best_model_path)['pricingnet_state_dict'])
 model.eval()
 
 # Plot Loss
