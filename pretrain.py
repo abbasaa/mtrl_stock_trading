@@ -90,33 +90,12 @@ def get_labels(prices_idx):
     return actual_prices
 
 
-def eval_model():
-    eval_arr = np.arange(END_TIME - WINDOW - 1)
-    np.random.shuffle(eval_arr)
-    model.eval()
-    model.zero_grad()
-    eloss = 0
-    for k in range(K_folds):
-        pe = eval_arr[k*EVAL_SIZE:(k+1)*EVAL_SIZE]
-        le = get_labels(pe)
-        with torch.no_grad():
-            out = model(pe)
-        eloss += criterion(out.squeeze(), torch.tensor(le, dtype=torch.float, device=device)).detach().cpu().numpy()
-    eloss /= K_folds
-    eval_loss.append(eloss)
-    model.train()
-    if eloss < lowest_loss:
-        print('Saving Best Model ...')
-        torch.save({
-            'pricingnet_state_dict': model.state_dict(),
-        }, os.path.join(models_dir, f'pricingnet.pth'))
-
-
 model.train()
 for i in range(EPOCH_START, EPOCHS):
     print("Epoch ", i, ": [", end='')
     batch = np.arange(END_TIME - WINDOW - 1)
-    for j in range(BATCH_NUM):
+    np.random.shuffle(batch)
+    for j in range(BATCH_NUM-1):
         optimizer.zero_grad()
         inputs = batch[j*BATCH:(j+1)*BATCH]
         labels = get_labels(inputs)
@@ -130,8 +109,24 @@ for i in range(EPOCH_START, EPOCHS):
         optimizer.step()
         print("=", end='', flush=True)
     print("]")
-    if i % EVAL_INTERVAL == 0:
-        eval_model()
+
+    # Eval
+    model.eval()
+    model.zero_grad()
+    optimizer.zero_grad()
+    inputs = batch[(BATCH_NUM - 1)*BATCH:]
+    labels = get_labels(inputs)
+    with torch.no_grad():
+        output = model(inputs)
+    eloss = criterion(output.squeeze(), torch.tensor(labels, dtype=torch.float, device=device)).detach().cpu().numpy()
+    eval_loss.append(eloss)
+    if eloss < lowest_loss:
+        lowest_loss = eloss
+        print('Saving Best Model ...')
+        torch.save({
+            'pricingnet_state_dict': model.state_dict(),
+        }, os.path.join(models_dir, f'pricingnet.pth'))
+    model.train()
 
     print(f"Saving checkpoint for Epoch {i} ...")
     torch.save({
