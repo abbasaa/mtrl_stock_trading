@@ -129,7 +129,7 @@ for i in range(EPOCH_START, EPOCHS):
         loss = criterion(output.squeeze(), torch.tensor(labels, dtype=torch.float, device=device))
         training_loss.append(loss.detach().cpu().numpy())
         loss.backward(retain_graph=True)
-        for param in PricingNet.parameters():
+        for param in model.parameters():
             param.grad.data.clamp(-1, 1)
         print("=", end='', flush=True)
     print("]")
