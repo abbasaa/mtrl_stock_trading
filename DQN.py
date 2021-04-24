@@ -19,7 +19,7 @@ class DQN(nn.Module):
         models_dir = os.path.join(os.curdir, 'models', ticker)
         if not os.path.isdir(models_dir):
             raise Exception('No models dir to load pretrained pricingnet')
-        model_files = [f for f in os.listdir(models_dir) if (os.path.isfile(os.path.join(models_dir, f)) and f.find('.pth') != -1)]
+        model_files = [f for f in os.listdir(models_dir) if (os.path.isfile(os.path.join(models_dir, f)) and f == 'pricingnet.pth')]
         if len(model_files) != 1:
             raise Exception('Incorrect no. of model files to load pretrained pricingnet')
 
