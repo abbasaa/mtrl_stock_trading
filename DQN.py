@@ -16,22 +16,16 @@ class DQN(nn.Module):
         for param in self.pricing.parameters():
             param.requires_grad = False
         # load in pretrained pricingnet
-        checkpoints_dir = os.path.join(os.curdir, 'checkpoints', 'pricingnet', ticker)
-        if not os.path.isdir(checkpoints_dir):
-            raise Exception('No checkpoints dir to load pretrained pricingnet')
-        checkpoint_files = [f for f in os.listdir(checkpoints_dir) if os.path.isfile(os.path.join(checkpoints_dir, f))]
-        if len(checkpoint_files) == 0:
-            raise Exception('No checkpoint files to load pretrained pricingnet')
+        models_dir = os.path.join(os.curdir, 'models', ticker)
+        if not os.path.isdir(models_dir):
+            raise Exception('No models dir to load pretrained pricingnet')
+        model_files = [f for f in os.listdir(models_dir) if (os.path.isfile(os.path.join(models_dir, f)) and f.find('.pth') != -1)]
+        if len(model_files) != 1:
+            raise Exception('Incorrect no. of model files to load pretrained pricingnet')
 
-        max_epoch = -2**32
-        for file in checkpoint_files:
-            cur_epoch = int(file.split('.')[1])
-            if cur_epoch > max_epoch:
-                max_epoch = cur_epoch
-
-        print(f'Loading pricingnet from checkpoint at epoch: {max_epoch}')
-        checkpoint_file = os.path.join(checkpoints_dir, f'pricingnet.{max_epoch}.pth')
-        checkpoint = torch.load(checkpoint_file)
+        print(f'Loading pricingnet from models dir')
+        model_file = os.path.join(models_dir, 'pricingnet.pth')
+        checkpoint = torch.load(model_file)
         self.pricing.load_state_dict(checkpoint['pricingnet_state_dict'])
 
         self.input_size = input_size
