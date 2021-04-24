@@ -5,14 +5,16 @@ import time
 import sys
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
-import pandas as pd
+
 
 from anytrading_torch import anytrading_torch
 from DQN import DQN
-from preprocess import import_stock_to_env, getimfs
+from preprocess import getimfs
 from ReplayMemory import ReplayMemory, Transition
 
 start = time.perf_counter()
@@ -34,7 +36,6 @@ if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
     print(f'IMF or denorm file missing for stock: {TICKER}')
     getimfs(stock_prices, WINDOW, data_file[:-4])
     print(f'Preprocessing for stock: {TICKER} complete ...')
-# TODO: should we read in window and end time for preprocess ?
 
 # Prepare Training and Evaluation Environments
 env = anytrading_torch(device, 'stocks-v0', stock_prices, (WINDOW, END_TIME), WINDOW)
@@ -102,6 +103,13 @@ if len(checkpoint_files) != 0:
     TargetNet.load_state_dict(checkpoint['dqn_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
     steps_done = EPISODE_START * (END_TIME - WINDOW)
+    if len(checkpoint_files) > 1:
+        print('Removing older checkpoint files')
+        checkpoint_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f))
+                                                                       and f != f'dqn.{EPISODE_START}.pth')]
+        for f in checkpoint_files:
+            os.remove(os.path.join(checkpoints_dir, f))
+
 else:
     TargetNet.load_state_dict(PolicyNet.state_dict())
 TargetNet.eval()
@@ -202,13 +210,13 @@ def eval_model():
         print('Saving Best Reward Model for Episode ...')
         torch.save({
             'dqn_state_dict': PolicyNet.state_dict(),
-        }, os.path.join(models_dir, f'dqn_reward_{TICKER}.pth'))
+        }, os.path.join(models_dir, f'dqn_reward.{GAMMA}-{TICKER}.pth'))
     if mean_profit >= highest_profit:
         highest_profit = mean_profit
         print('Saving Best Profit Model for Episode ...')
         torch.save({
             'dqn_state_dict': PolicyNet.state_dict(),
-        }, os.path.join(models_dir, f'dqn_profit_{TICKER}.pth'))
+        }, os.path.join(models_dir, f'dqn_profit.{GAMMA}-{TICKER}.pth'))
 
 
 NUM_EPISODES = 100
@@ -261,38 +269,57 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
         'optimizer_state_dict': optimizer.state_dict(),
     }, os.path.join(checkpoints_dir, f'dqn.{i_episode}.pth'))
 
+    # remove last checkpoint
+    if i_episode - 1 >= 0 and os.path.isfile(os.path.join(checkpoints_dir, f'dqn.{i_episode - 1}.pth')):
+        print(f'Removing old checkpoint file for episode {i_episode}')
+        os.remove(os.path.join(checkpoints_dir, f'dqn.{i_episode}.pth'))
+
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
+
+def smooth(x):
+    kernel_size = 20
+    kernel = np.ones(kernel_size) / kernel_size
+    conv_x = np.convolve(x, kernel, mode='same')
+    return conv_x
 
 fig, ax = plt.subplots()
 exploration = [e / (END_TIME - WINDOW) for e in exploration]
 ax.plot([e for e in range(len(exploration))], exploration)
 ax.set_title("Exploration vs episodes")
-fig.savefig(os.path.join(models_dir, f'Exploration_{TICKER}.png'))
+ax.set_xlabel('Episodes')
+ax.set_ylabel('Exploration')
+fig.savefig(os.path.join(models_dir, f'Exploration.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 
 fig2, ax2 = plt.subplots()
-ax2.plot([i for i in range(len(intentional_reward))], intentional_reward)
+ax2.plot(smooth(intentional_reward))
 ax2.set_title("Intentional Reward vs Time")
-fig2.savefig(os.path.join(models_dir, f'Intentional_Reward_{TICKER}.png'))
+ax2.set_xlabel('Reward')
+ax2.set_ylabel('Time')
+fig2.savefig(os.path.join(models_dir, f'Intentional_Reward.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 
 fig3, ax3 = plt.subplots()
-ax3.plot([r for r in range(len(train_reward))], train_reward, 'r', label="train")
+ax3.plot([r for r in range(len(train_reward))], smooth(train_reward), 'r', label="train")
 ax3.plot([r*EVAL for r in range(len(eval_reward))], eval_reward, 'b', label="eval")
-ax3.set_title("Total Reward vs Episodes")
+ax3.set_title("Rolling Average Total Reward vs Episodes")
+ax3.set_xlabel('Total Reward')
+ax3.set_ylabel('Episodes')
 handles, labels = ax3.get_legend_handles_labels()
 ax3.legend(handles, labels)
-fig3.savefig(os.path.join(models_dir, f'Reward_{TICKER}.png'))
+fig3.savefig(os.path.join(models_dir, f'Reward.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 
 fig4, ax4 = plt.subplots()
-ax4.plot([p for p in range(len(train_profit))], train_profit, 'r', label="train")
+ax4.plot([p for p in range(len(train_profit))], smooth(train_profit), 'r', label="train")
 ax4.plot([p*EVAL for p in range(len(eval_profit))], eval_profit, 'b', label="eval")
-ax4.set_title("Total Profit vs Episodes")
+ax4.set_title("Rolling Average Total Profit vs Episodes")
+ax4.set_xlabel('Total Profit')
+ax4.set_ylabel('Episodes')
 handles, labels = ax4.get_legend_handles_labels()
 ax4.legend(handles, labels)
-fig4.savefig(os.path.join(models_dir, f'Profit_{TICKER}.png'))
+fig4.savefig(os.path.join(models_dir, f'Profit.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 plt.cla()
 
-PolicyNet.load_state_dict(torch.load(os.path.join(models_dir, f'dqn_profit_{TICKER}.pth'))['dqn_state_dict'])
+PolicyNet.load_state_dict(torch.load(os.path.join(models_dir, f'dqn_profit.{GAMMA}-{TICKER}.pth'))['dqn_state_dict'])
 obs = env.reset()
 pos = torch.zeros((1, 1), dtype=torch.float, device=device)
 t_step = -1
@@ -306,4 +333,4 @@ while True:
         break
 env.render_all()
 plt.title(f"DQN After {NUM_EPISODES} Episodes")
-plt.savefig(os.path.join(models_dir, f'Environment_{TICKER}.png'))
+plt.savefig(os.path.join(models_dir, f'Environment.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
