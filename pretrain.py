@@ -17,12 +17,10 @@ from gym_anytrading.datasets import STOCKS_GOOGL
 start = time.perf_counter()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# TICKER = sys.argv[1]
-TICKER = 'GOOGL'
+TICKER = sys.argv[1]
 DATA_DIR = 'Tech'
 WINDOW = 250
-# END_TIME = 754
-END_TIME = 699
+END_TIME = 754
 
 model = PricingNet(TICKER, device)
 model.to(device)
@@ -33,9 +31,7 @@ criterion = nn.MSELoss()
 imf_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_IMF.npy')
 denorm_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_denorm.npy')
 data_file = os.path.join(os.curdir, DATA_DIR, f'{TICKER}.csv')
-# stock_prices = pd.read_csv(data_file).loc[:, 'Close'].to_numpy()
-stock_prices = STOCKS_GOOGL.loc[:, 'Close'].to_numpy()
-stock_prices = stock_prices[:END_TIME+1]
+stock_prices = pd.read_csv(data_file).loc[:, 'Close'].to_numpy()
 
 if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
     print(f'IMF or denorm file missing for stock: {TICKER}')
@@ -131,6 +127,7 @@ for i in range(EPOCH_START, EPOCHS):
         loss.backward(retain_graph=True)
         for param in model.parameters():
             param.grad.data.clamp(-1, 1)
+        optimizer.step()
         print("=", end='', flush=True)
     print("]")
     if i % EVAL_INTERVAL == 0:
@@ -142,8 +139,8 @@ for i in range(EPOCH_START, EPOCHS):
         'optimizer_state_dict': optimizer.state_dict(),
     }, os.path.join(checkpoints_dir, f"pricingnet.{i}.pth"))
 
-# best_model_path = os.path.join(os.curdir, 'models', TICKER, f'pricingnet.pth')
-# model.load_state_dict(torch.load(best_model_path)['pricingnet_state_dict'])
+best_model_path = os.path.join(os.curdir, 'models', TICKER, f'pricingnet.pth')
+model.load_state_dict(torch.load(best_model_path)['pricingnet_state_dict'])
 model.eval()
 
 # Plot Loss
