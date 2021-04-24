@@ -48,9 +48,9 @@ for i in range(K_folds):
 # Hyperparameters
 REPLAY_SIZE = 512
 BATCH_SIZE = 128
-GAMMA = 0.995
+GAMMA = 0.2
 EPS_START = 0.9
-EPS_END = 0.05
+EPS_END = 0.1
 EPS_DELAY = 8000
 EPS_DECAY = .99995
 TARGET_UPDATE = 10
@@ -64,7 +64,7 @@ PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = TargetNet.to(device)
 PolicyNet = PolicyNet.to(device)
-optimizer = optim.Adam(PolicyNet.parameters())
+optimizer = optim.RMSprop(PolicyNet.parameters())
 memory = ReplayMemory(REPLAY_SIZE)
 
 # make model folders
@@ -211,7 +211,7 @@ def eval_model():
         }, os.path.join(models_dir, f'dqn_profit_{TICKER}.pth'))
 
 
-NUM_EPISODES = 20
+NUM_EPISODES = 300
 for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
@@ -284,9 +284,9 @@ ax3.legend(handles, labels)
 fig3.savefig(os.path.join(models_dir, f'Reward_{TICKER}.png'))
 
 fig4, ax4 = plt.subplots()
-ax4.plot([p for p in range(len(train_profit))], train_reward, 'r', label="train")
-ax4.plot([p*EVAL for p in range(len(eval_profit))], eval_reward, 'b', label="eval")
-ax4.set_title("Total Reward vs Episodes")
+ax4.plot([p for p in range(len(train_profit))], train_profit, 'r', label="train")
+ax4.plot([p*EVAL for p in range(len(eval_profit))], eval_profit, 'b', label="eval")
+ax4.set_title("Total Profit vs Episodes")
 handles, labels = ax4.get_legend_handles_labels()
 ax4.legend(handles, labels)
 fig4.savefig(os.path.join(models_dir, f'Profit_{TICKER}.png'))
