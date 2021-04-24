@@ -48,7 +48,7 @@ for i in range(K_folds):
 # Hyperparameters
 REPLAY_SIZE = 512
 BATCH_SIZE = 128
-GAMMA = 0.2
+GAMMA = 0.1
 EPS_START = 0.9
 EPS_END = 0.1
 EPS_DELAY = 8000
@@ -211,7 +211,7 @@ def eval_model():
         }, os.path.join(models_dir, f'dqn_profit_{TICKER}.pth'))
 
 
-NUM_EPISODES = 300
+NUM_EPISODES = 100
 for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
@@ -291,6 +291,19 @@ handles, labels = ax4.get_legend_handles_labels()
 ax4.legend(handles, labels)
 fig4.savefig(os.path.join(models_dir, f'Profit_{TICKER}.png'))
 plt.cla()
+
+PolicyNet.load_state_dict(torch.load(os.path.join(models_dir, f'dqn_profit_{TICKER}.pth'))['dqn_state_dict'])
+obs = env.reset()
+pos = torch.zeros((1, 1), dtype=torch.float, device=device)
+t_step = -1
+while True:
+    t_step += 1
+    with torch.no_grad():
+        act = PolicyNet(pos, [t_step], obs[:, -1, 0]).max(1)[1].view(1, 1).float()
+    obs, _, is_done, inf = env.step(act)
+    pos = act
+    if is_done:
+        break
 env.render_all()
 plt.title(f"DQN After {NUM_EPISODES} Episodes")
 plt.savefig(os.path.join(models_dir, f'Environment_{TICKER}.png'))
