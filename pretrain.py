@@ -70,6 +70,12 @@ if len(checkpoint_files) != 0:
     checkpoint = torch.load(checkpoint_file)
     model.load_state_dict(checkpoint['pricingnet_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    if len(checkpoint_files) > 1:
+        print('Removing older checkpoint files')
+        checkpoint_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f))
+                                                                       and f != f'pricingnet.{max_epoch}.pth')]
+        for f in checkpoint_files:
+            os.remove(os.path.join(checkpoints_dir, f))
 
 BATCH = 64
 K_folds = 5
@@ -95,6 +101,7 @@ for i in range(EPOCH_START, EPOCHS):
     print("Epoch ", i, ": [", end='')
     batch = np.arange(END_TIME - WINDOW - 1)
     np.random.shuffle(batch)
+    t_loss = 0
     for j in range(BATCH_NUM-1):
         optimizer.zero_grad()
         inputs = batch[j*BATCH:(j+1)*BATCH]
@@ -102,13 +109,16 @@ for i in range(EPOCH_START, EPOCHS):
         model.zero_grad()
         output = model(inputs)
         loss = criterion(output.squeeze(), torch.tensor(labels, dtype=torch.float, device=device))
-        training_loss.append(loss.detach().cpu().numpy())
+        t_loss += loss.detach().cpu().numpy()
         loss.backward(retain_graph=True)
         for param in model.parameters():
             param.grad.data.clamp(-1, 1)
         optimizer.step()
         print("=", end='', flush=True)
+    t_loss /= BATCH_NUM - 1
+    training_loss.append(t_loss)
     print("]")
+
 
     # Eval
     model.eval()
@@ -134,11 +144,17 @@ for i in range(EPOCH_START, EPOCHS):
         }, os.path.join(models_dir, f'pricingnet.pth'))
     model.train()
 
+    # save checkpoint
     print(f"Saving checkpoint for Epoch {i} ...")
     torch.save({
         'pricingnet_state_dict': model.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
     }, os.path.join(checkpoints_dir, f"pricingnet.{i}.pth"))
+
+    # remove last checkpoint
+    if i-1 >= 0 and os.path.isfile(os.path.join(checkpoints_dir, f'pricingnet.{i-1}.pth')):
+        print(f'Removing old checkpoint file for epoch {i-1}')
+        os.remove(os.path.join(checkpoints_dir, f'pricingnet.{i-1}.pth'))
 
 best_model_path = os.path.join(os.curdir, 'models', TICKER, f'pricingnet.pth')
 model.load_state_dict(torch.load(best_model_path)['pricingnet_state_dict'])
@@ -147,7 +163,10 @@ model.eval()
 # Plot Loss
 fig, ax = plt.subplots()
 ax.plot(np.arange(len(training_loss)), training_loss, 'r', label='train')
-ax.plot(np.arange(len(training_loss), step=BATCH_NUM-1), eval_loss, 'b', label='eval')
+ax.plot(np.arange(len(eval_loss)), eval_loss, 'b', label='eval')
+ax.set_title(f'Train and Eval Loss vs Epoch of {TICKER} with {EPOCHS} epochs')
+ax.xlabel('Epoch')
+ax.ylabel('Loss')
 ax.legend()
 fig.savefig(f'models/{TICKER}/PricingLoss.png')
 
@@ -156,6 +175,10 @@ x = [j for j in range(END_TIME-WINDOW)]
 with torch.no_grad():
     predicted = model(x).detach().cpu().numpy()
 fig, ax = plt.subplots()
-ax.plot(x, predicted, 'r')
-ax.plot(x, stock_prices[WINDOW+1:], 'b')
+ax.plot(x, predicted, 'r', label='predicted')
+ax.plot(x, stock_prices[WINDOW+1:], 'b', label='actual')
+ax.set_title(f'Predicted vs Actual Stock Price of {TICKER} with {EPOCHS} epochs')
+ax.ylabel('Price (Dollars)')
+ax.xlabel('Time (Days)')
+ax.legend()
 fig.savefig(f'models/{TICKER}/PricingPrediction.png')
