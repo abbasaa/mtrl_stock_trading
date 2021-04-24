@@ -270,9 +270,9 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
     }, os.path.join(checkpoints_dir, f'dqn.{i_episode}.pth'))
 
     # remove last checkpoint
-    if i_episode - 1 >= 0 and os.path.isfile(os.path.join(checkpoints_dir, f'dqn.{i_episode - 1}.pth')):
-        print(f'Removing old checkpoint file for episode {i_episode}')
-        os.remove(os.path.join(checkpoints_dir, f'dqn.{i_episode}.pth'))
+    if i_episode-1 >= 0 and os.path.isfile(os.path.join(checkpoints_dir, f'dqn.{i_episode-1}.pth')):
+        print(f'Removing old checkpoint file for episode {i_episode-1}')
+        os.remove(os.path.join(checkpoints_dir, f'dqn.{i_episode-1}.pth'))
 
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
