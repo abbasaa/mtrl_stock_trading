@@ -73,7 +73,7 @@ if len(checkpoint_files) != 0:
 
 BATCH = 64
 K_folds = 5
-EPOCHS = 200
+EPOCHS = 4
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 EVAL_SIZE = (END_TIME - WINDOW - 1)//K_folds
 EVAL_INTERVAL = 4
@@ -141,7 +141,7 @@ model.eval()
 # Plot Loss
 fig, ax = plt.subplots()
 ax.plot(np.arange(len(training_loss)), training_loss, 'r', label='train')
-ax.plot(np.arange(len(training_loss), step=BATCH_NUM*EVAL_INTERVAL), eval_loss, 'b', label='eval')
+ax.plot(np.arange(len(training_loss), step=BATCH_NUM-1), eval_loss, 'b', label='eval')
 ax.legend()
 fig.savefig(f'models/{TICKER}/PricingLoss.png')
 
