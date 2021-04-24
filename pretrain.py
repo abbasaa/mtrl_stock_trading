@@ -120,7 +120,13 @@ for i in range(EPOCH_START, EPOCHS):
         output = model(inputs)
     eloss = criterion(output.squeeze(), torch.tensor(labels, dtype=torch.float, device=device)).detach().cpu().numpy()
     eval_loss.append(eloss)
-    if eloss < lowest_loss:
+
+    inputs = np.arange(END_TIME - WINDOW - 1)
+    labels = get_labels(inputs)
+    with torch.no_grad():
+        output = model(inputs)
+    total_loss = criterion(output.squeeze(), torch.tensor(labels, dtype=torch.float, device=device)).detach().cpu().numpy()
+    if total_loss < lowest_loss:
         lowest_loss = eloss
         print('Saving Best Model ...')
         torch.save({
