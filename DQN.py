@@ -19,10 +19,8 @@ class DQN(nn.Module):
         models_dir = os.path.join(os.curdir, 'models', ticker)
         if not os.path.isdir(models_dir):
             raise Exception('No models dir to load pretrained pricingnet')
-        model_files = [f for f in os.listdir(models_dir) if (os.path.isfile(os.path.join(models_dir, f)) and f == 'pricingnet.pth')]
-        if len(model_files) != 1:
-            raise Exception('Incorrect no. of model files to load pretrained pricingnet')
-
+        if not os.path.isfile(os.path.join(models_dir, 'pricingnet.pth')):
+            raise Exception('Pretrained pricingnet.pth does not exist')
         print(f'Loading pricingnet from models dir')
         model_file = os.path.join(models_dir, 'pricingnet.pth')
         checkpoint = torch.load(model_file)
