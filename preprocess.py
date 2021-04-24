@@ -24,7 +24,7 @@ def import_stock_to_env(filename: str):
 
 def normalize(x):
     # return (x - min(x)) / (max(x) - min(x))
-    return np.nan_to_num((x - np.amin(x, axis=1)[:, np.newaxis]) / ((np.amin(x, axis=1) - np.amax(x, axis=1))[:, np.newaxis]))
+    return np.nan_to_num((x - np.amin(x, axis=1)[:, np.newaxis]) / ((np.amax(x, axis=1) - np.amin(x, axis=1))[:, np.newaxis]))
 
 
 def getimfs(prices, window, filename):
