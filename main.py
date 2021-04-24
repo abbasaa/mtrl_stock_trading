@@ -67,22 +67,37 @@ PolicyNet = PolicyNet.to(device)
 optimizer = optim.Adam(PolicyNet.parameters())
 memory = ReplayMemory(REPLAY_SIZE)
 
+# make model folders
+models_dir = os.path.join(os.curdir, 'models')
+if not os.path.isdir(models_dir):
+    os.mkdir(models_dir)
+models_dir = os.path.join(models_dir, TICKER)
+if not os.path.isdir(models_dir):
+    os.mkdir(models_dir)
+
 # load checkpoint if possible
 EPISODE_START = 0
 steps_done = 0
-if not os.path.isdir(os.path.join(os.curdir,'checkpoints', TICKER)):
-    os.mkdir(os.path.join(os.curdir, 'checkpoints', TICKER))
-while True:
-    checkpoint_path = os.path.join(os.curdir, 'checkpoints', TICKER, f'dqn_{EPISODE_START}.pth')
-    if not os.path.isfile(checkpoint_path):
-        EPISODE_START = max(0, EPISODE_START-1)
-        break
-    EPISODE_START += 1
-
-if EPISODE_START != 0:
+checkpoints_dir = os.path.join(os.curdir, 'checkpoints')
+if not os.path.isdir(checkpoints_dir):
+    os.mkdir(checkpoints_dir)
+checkpoints_dir = os.path.join(checkpoints_dir, 'dqn')
+if not os.path.isdir(checkpoints_dir):
+    os.mkdir(checkpoints_dir)
+checkpoints_dir = os.path.join(checkpoints_dir, TICKER)
+if not os.path.isdir(checkpoints_dir):
+    os.mkdir(checkpoints_dir)
+checkpoint_files = [f for f in os.listdir(checkpoints_dir) if os.path.isfile(os.path.join(checkpoints_dir, f))]
+if len(checkpoint_files) != 0:
+    max_eps = -2 ** 32
+    for file in checkpoint_files:
+        cur_eps = int(file.split('.')[1])
+        if cur_eps > max_eps:
+            max_eps = cur_eps
+    EPISODE_START = max_eps
     print(f'Loading model from checkpoint at episode: {EPISODE_START}')
-    checkpoint_path = os.path.join(os.curdir, 'checkpoints', TICKER, f'dqn_{EPISODE_START}.pth')
-    checkpoint = torch.load(checkpoint_path)
+    checkpoint_file = os.path.join(checkpoints_dir, f'dqn.{EPISODE_START}.pth')
+    checkpoint = torch.load(checkpoint_file)
     PolicyNet.load_state_dict(checkpoint['dqn_state_dict'])
     TargetNet.load_state_dict(checkpoint['dqn_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -186,13 +201,13 @@ def eval_model():
         print('Saving Best Reward Model for Episode ...')
         torch.save({
             'dqn_state_dict': PolicyNet.state_dict(),
-        }, os.path.join(os.curdir, 'models', f'dqn_reward_{TICKER}.pth'))
+        }, os.path.join(models_dir, f'dqn_reward_{TICKER}.pth'))
     if mean_profit >= highest_profit:
         highest_profit = mean_profit
         print('Saving Best Profit Model for Episode ...')
         torch.save({
             'dqn_state_dict': PolicyNet.state_dict(),
-        }, os.path.join(os.curdir, 'models', f'dqn_profit_{TICKER}.pth'))
+        }, os.path.join(models_dir, f'dqn_profit_{TICKER}.pth'))
 
 
 NUM_EPISODES = 20
@@ -240,12 +255,10 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
 
     # save checkpoint
     print(f'Saving checkpoint for Episode {i_episode} ...')
-    if not os.path.isdir(os.path.join(os.curdir,'checkpoints', TICKER)):
-        os.mkdir(os.path.join(os.curdir, 'checkpoints', TICKER))
     torch.save({
         'dqn_state_dict': PolicyNet.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
-    }, os.path.join(os.curdir, 'checkpoints', TICKER, f'dqn_{i_episode}.pth'))
+    }, os.path.join(checkpoints_dir, f'dqn.{i_episode}.pth'))
 
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
