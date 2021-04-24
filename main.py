@@ -169,7 +169,8 @@ def optimize_model():
     optimizer.zero_grad()
     loss.backward()
     for param in PolicyNet.parameters():
-        param.grad.data.clamp(-1, 1)
+        if param.requires_grad:
+            param.grad.data.clamp(-1, 1)
     optimizer.step()
 
 
