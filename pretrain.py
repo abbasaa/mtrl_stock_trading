@@ -79,7 +79,7 @@ if len(checkpoint_files) != 0:
 
 BATCH = 64
 K_folds = 5
-EPOCHS = 4
+EPOCHS = 200
 BATCH_NUM = (END_TIME - WINDOW - 1)//BATCH
 EVAL_SIZE = (END_TIME - WINDOW - 1)//K_folds
 EVAL_INTERVAL = 4
