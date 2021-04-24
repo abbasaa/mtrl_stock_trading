@@ -277,8 +277,8 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
 
-def smooth(x):
-    kernel_size = 20
+
+def smooth(x, kernel_size=20):
     kernel = np.ones(kernel_size) / kernel_size
     conv_x = np.convolve(x, kernel, mode='same')
     return conv_x
@@ -292,7 +292,7 @@ ax.set_ylabel('Exploration')
 fig.savefig(os.path.join(models_dir, f'Exploration.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 
 fig2, ax2 = plt.subplots()
-ax2.plot(smooth(intentional_reward))
+ax2.plot(smooth(intentional_reward, kernel_size=40))
 ax2.set_title("Intentional Reward vs Time")
 ax2.set_xlabel('Reward')
 ax2.set_ylabel('Time')
@@ -333,4 +333,6 @@ while True:
         break
 env.render_all()
 plt.title(f"DQN After {NUM_EPISODES} Episodes")
+plt.set_xlabel('Time (Days)')
+plt.set_ylabel('Prices')
 plt.savefig(os.path.join(models_dir, f'Environment.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
