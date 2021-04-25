@@ -11,7 +11,6 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-
 from anytrading_torch import anytrading_torch
 from DQN import DQN
 from preprocess import getimfs
@@ -31,7 +30,6 @@ denorm_filename = os.path.join(os.curdir, 'IMF', f'{TICKER}_denorm.npy')
 data_file = os.path.join(os.curdir, DATA_DIR, f'{TICKER}.csv')
 stock_prices = pd.read_csv(data_file)
 
-
 if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
     print(f'IMF or denorm file missing for stock: {TICKER}')
     getimfs(stock_prices, WINDOW, data_file[:-4])
@@ -44,7 +42,7 @@ eval_envs = []
 fold_length = (END_TIME - WINDOW) // K_folds
 for i in range(K_folds):
     eval_envs.append(anytrading_torch(device, 'stocks-v0', stock_prices,
-                                      (WINDOW + i*fold_length, WINDOW + (i+1)*fold_length), WINDOW))
+                                      (WINDOW + i * fold_length, WINDOW + (i + 1) * fold_length), WINDOW))
 
 # Hyperparameters
 REPLAY_SIZE = 512
@@ -52,17 +50,17 @@ BATCH_SIZE = 128
 GAMMA = 0.1
 EPS_START = 0.9
 EPS_END = 0.1
-EPS_DELAY = 2*(END_TIME - WINDOW) # Increase?
-EPS_DECAY = .99995 # Decrease?
+EPS_DELAY = 10 * (END_TIME - WINDOW)  # Increase?
+EPS_DECAY = .99995  # Decrease?
 TARGET_UPDATE = 10
-EVAL = 10
+EVAL = 5
 
 # Initialize Networks, Memory and Optimizer
 N_ACTIONS = env.action_space.n
 HIDDEN_DIM = 5
 N_HISTORIC_PRICES = 1
-PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
-TargetNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
+PolicyNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
+TargetNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = TargetNet.to(device)
 PolicyNet = PolicyNet.to(device)
 optimizer = optim.RMSprop(PolicyNet.parameters())
@@ -129,28 +127,22 @@ highest_profit = float('-inf')
 
 def select_action(positions, time_idx, last_price):
     global steps_done
-    # sample = random.random()
-    # decay = 1
-    # if steps_done > EPS_DELAY:
-         #decay = math.pow(EPS_DECAY, steps_done - EPS_DELAY)
-    # eps_threshold = EPS_END + (EPS_START - EPS_END) * decay
+    sample = random.random()
+    decay = 1
+    if steps_done > EPS_DELAY:
+        decay = math.pow(EPS_DECAY, steps_done - EPS_DELAY)
+    eps_threshold = EPS_END + (EPS_START - EPS_END) * decay
     steps_done += 1
-    # if sample > eps_threshold:
-    #     with torch.no_grad():
-    #         return PolicyNet(positions, time_idx, last_price).max(1)[1].view(1, 1).float(), True
-    # else:
-    #     exploration[-1] += 1
-    #     return torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.float), False
-    if steps_done < EPS_DELAY:
-        a = random.randrange(N_ACTIONS)
-        is_exploit = False
-    else:
+    if sample > eps_threshold:
         u_t = np.sqrt((2 * np.log(steps_done)) / Actions)
-        q_t = PolicyNet(positions, time_idx, last_price).detach().cpu().numpy()
+        with torch.no_grad():
+            q_t = PolicyNet(positions, time_idx, last_price).detach().cpu().numpy()
         a = np.argmax(u_t + q_t)
         is_exploit = bool(q_t[:, 0] - q_t[:, 1] > u_t[:, 0] - u_t[:, 1])
-    Actions[:, a] += 1
-    return torch.tensor([[a]], device=device, dtype=torch.float), is_exploit
+        torch.tensor([[a]], device=device, dtype=torch.float), is_exploit
+    else:
+        exploration[-1] += 1
+        return torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.float), False
 
 
 def optimize_model():
@@ -199,16 +191,16 @@ def eval_model():
     mean_reward = 0
     mean_profit = 0
     for environment in eval_envs:
-        obs = environment.reset()
-        pos = torch.zeros((1, 1),  dtype=torch.float, device=device)
-        t_step = -1
+        obs_eval = environment.reset()
+        pos_eval = torch.zeros((1, 1), dtype=torch.float, device=device)
+        t_step_eval = -1
         while True:
-            t_step += 1
+            t_step_eval += 1
             with torch.no_grad():
-                act = PolicyNet(pos, [t_step], obs[:, -1, 0]).max(1)[1].view(1, 1).float()
-            obs, _, is_done, inf = environment.step(act)
-            pos = act
-            if is_done:
+                act_eval = PolicyNet(pos_eval, [t_step_eval], obs_eval[:, -1, 0]).max(1)[1].view(1, 1).float()
+            obs_eval, _, is_done_e, inf_e = environment.step(act)
+            pos_eval = act_eval
+            if is_done_e:
                 mean_reward += inf['total_reward']
                 mean_profit += inf['total_profit']
                 break
@@ -238,7 +230,7 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
     # Initialize the environment and state
     exploration.append(0)
     observation = env.reset()
-    position = torch.zeros((1, 1),  dtype=torch.float, device=device)
+    position = torch.zeros((1, 1), dtype=torch.float, device=device)
     t = -1
 
     while True:
@@ -247,7 +239,8 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
         next_position = action
         next_observation, reward, done, info = env.step(action)
 
-        memory.push((position, t, observation[:, -1, 0]), action, (next_position, t+1, next_observation[:, -1, 0]), reward)
+        memory.push((position, t, observation[:, -1, 0]), action, (next_position, t + 1, next_observation[:, -1, 0]),
+                    reward)
 
         if steps_done % 16 == 0:
             optimize_model()
@@ -284,9 +277,9 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
     }, os.path.join(checkpoints_dir, f'dqn.{i_episode}.pth'))
 
     # remove last checkpoint
-    if i_episode-1 >= 0 and os.path.isfile(os.path.join(checkpoints_dir, f'dqn.{i_episode-1}.pth')):
-        print(f'Removing old checkpoint file for episode {i_episode-1}')
-        os.remove(os.path.join(checkpoints_dir, f'dqn.{i_episode-1}.pth'))
+    if i_episode - 1 >= 0 and os.path.isfile(os.path.join(checkpoints_dir, f'dqn.{i_episode - 1}.pth')):
+        print(f'Removing old checkpoint file for episode {i_episode - 1}')
+        os.remove(os.path.join(checkpoints_dir, f'dqn.{i_episode - 1}.pth'))
 
 stop = time.perf_counter()
 print(f"Completed execution in: {stop - start:0.4f} seconds")
@@ -296,6 +289,7 @@ def smooth(x, kernel_size=20):
     kernel = np.ones(kernel_size) / kernel_size
     conv_x = np.convolve(x, kernel, mode='same')
     return conv_x
+
 
 fig, ax = plt.subplots()
 exploration = [e / (END_TIME - WINDOW) for e in exploration]
@@ -314,7 +308,7 @@ fig2.savefig(os.path.join(models_dir, f'Intentional_Reward.{NUM_EPISODES}-{GAMMA
 
 fig3, ax3 = plt.subplots()
 ax3.plot([r for r in range(len(train_reward))], smooth(train_reward), 'r', label="train")
-ax3.plot([r*EVAL for r in range(len(eval_reward))], eval_reward, 'b', label="eval")
+ax3.plot([r * EVAL for r in range(len(eval_reward))], eval_reward, 'b', label="eval")
 ax3.set_title("Rolling Average Total Reward vs Episodes")
 ax3.set_xlabel('Total Reward')
 ax3.set_ylabel('Episodes')
@@ -324,7 +318,7 @@ fig3.savefig(os.path.join(models_dir, f'Reward.{NUM_EPISODES}-{GAMMA}-{TICKER}.p
 
 fig4, ax4 = plt.subplots()
 ax4.plot([p for p in range(len(train_profit))], smooth(train_profit), 'r', label="train")
-ax4.plot([p*EVAL for p in range(len(eval_profit))], eval_profit, 'b', label="eval")
+ax4.plot([p * EVAL for p in range(len(eval_profit))], eval_profit, 'b', label="eval")
 ax4.set_title("Rolling Average Total Profit vs Episodes")
 ax4.set_xlabel('Total Profit')
 ax4.set_ylabel('Episodes')
