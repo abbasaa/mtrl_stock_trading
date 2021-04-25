@@ -8,7 +8,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
 TICKER = None
 GAMMA = None
 TYPE = None
@@ -51,4 +51,4 @@ while True:
         break
 env.render_all()
 plt.title(f"DQN")
-plt.savefig(os.path.join('models', f'Environment_{GAMMA}.{TICKER}.png'))
+plt.savefig(os.path.join('models', f'{TICKER}\Environment_{GAMMA}.{TICKER}.png'))
