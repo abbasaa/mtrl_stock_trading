@@ -153,7 +153,7 @@ def select_action(positions, time_idx, last_price):
     if sample > eps_threshold:
         u_t = np.sqrt((2 * np.log(steps_done)) / Actions)
         with torch.no_grad():
-            q_t = PolicyNet(positions, time_idx, last_price).detach().cpu().numpy()
+            q_t = PolicyNet(positions, time_idx, last_price.squeeze()).detach().cpu().numpy()
         a = np.argmax(u_t + q_t)
         Actions[:, a] += 1
         is_exploit = bool(q_t[:, 0] - q_t[:, 1] > u_t[:, 0] - u_t[:, 1])
@@ -190,7 +190,7 @@ def optimize_model():
 
     # Calculate State Values
     state_action_values = PolicyNet(position_batch, times_batch,
-                                    last_price_batch).gather(1, action_batch.long())
+                                    last_price_batch.squeeze()).gather(1, action_batch.long())
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
     next_state_values[non_final_mask] = TargetNet(non_final_next_positions, non_final_next_times,
                                                   non_final_next_last_prices).max(1)[0].detach()
@@ -219,7 +219,7 @@ def eval_model():
         while True:
             t_step_eval += 1
             with torch.no_grad():
-                act_eval = PolicyNet(pos_eval, [t_step_eval], obs_eval[:, -N_HISTORIC_PRICES:, 0]).max(1)[1].view(1, 1).float()
+                act_eval = PolicyNet(pos_eval, [t_step_eval], obs_eval[:, -N_HISTORIC_PRICES:, 0].squeeze()).max(1)[1].view(1, 1).float()
             obs_eval, _, is_done_e, inf_e = environment.step(act_eval)
             pos_eval = act_eval
             if is_done_e:
