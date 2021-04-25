@@ -232,7 +232,7 @@ def eval_model():
         }, os.path.join(models_dir, f'dqn_profit.{GAMMA}-{TICKER}.pth'))
 
 
-NUM_EPISODES = 100
+NUM_EPISODES = 50
 for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
@@ -308,8 +308,8 @@ fig.savefig(os.path.join(models_dir, f'Exploration.{NUM_EPISODES}-{GAMMA}-{TICKE
 fig2, ax2 = plt.subplots()
 ax2.plot(smooth(intentional_reward, kernel_size=40))
 ax2.set_title("Intentional Reward vs Time")
-ax2.set_xlabel('Reward')
-ax2.set_ylabel('Time')
+ax2.set_xlabel('Time')
+ax2.set_ylabel('Reward')
 fig2.savefig(os.path.join(models_dir, f'Intentional_Reward.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 
 fig3, ax3 = plt.subplots()
@@ -347,6 +347,6 @@ while True:
         break
 env.render_all()
 plt.title(f"DQN After {NUM_EPISODES} Episodes")
-plt.set_xlabel('Time (Days)')
-plt.set_ylabel('Prices')
+plt.xlabel('Time (Days)')
+plt.ylabel('Prices')
 plt.savefig(os.path.join(models_dir, f'Environment.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
