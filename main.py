@@ -57,7 +57,7 @@ EVAL = 5
 
 # Initialize Networks, Memory and Optimizer
 N_ACTIONS = env.action_space.n
-HIDDEN_DIM = 5
+HIDDEN_DIM = 7
 N_HISTORIC_PRICES = 1
 PolicyNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
@@ -65,7 +65,7 @@ TargetNet = TargetNet.to(device)
 PolicyNet = PolicyNet.to(device)
 optimizer = optim.RMSprop(PolicyNet.parameters())
 memory = ReplayMemory(REPLAY_SIZE)
-Actions = np.zeros((1, 2))
+Actions = np.ones((1, 2))
 
 # make model folders
 models_dir = os.path.join(os.curdir, 'models')
@@ -130,12 +130,14 @@ for i in range(max_profit.shape[0]):
     max_profit[i] = -2**30
 
 profit_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f)) and f.find('profit')!=-1)]
-for i in range(max_profit.shape[0]):
-    f = profit_files[i]
+for i,f in enumerate(profit_files):
+    if i > 1:
+        break
     max_profit[i] = float(f.split('_')[2][:-4])
 reward_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f)) and f.find('reward')!=-1)]
-for i in range(max_reward.shape[0]):
-    f = reward_files[i]
+for i,f in enumerate(reward_files):
+    if i > 1:
+        break
     max_reward[i] = float(f.split('_')[2][:-4])
 
 
@@ -153,7 +155,7 @@ def select_action(positions, time_idx, last_price):
             q_t = PolicyNet(positions, time_idx, last_price).detach().cpu().numpy()
         a = np.argmax(u_t + q_t)
         is_exploit = bool(q_t[:, 0] - q_t[:, 1] > u_t[:, 0] - u_t[:, 1])
-        torch.tensor([[a]], device=device, dtype=torch.float), is_exploit
+        return torch.tensor([[a]], device=device, dtype=torch.float), is_exploit
     else:
         exploration[-1] += 1
         return torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.float), False
@@ -212,11 +214,11 @@ def eval_model():
             t_step_eval += 1
             with torch.no_grad():
                 act_eval = PolicyNet(pos_eval, [t_step_eval], obs_eval[:, -1, 0]).max(1)[1].view(1, 1).float()
-            obs_eval, _, is_done_e, inf_e = environment.step(act)
+            obs_eval, _, is_done_e, inf_e = environment.step(act_eval)
             pos_eval = act_eval
             if is_done_e:
-                mean_reward += inf['total_reward']
-                mean_profit += inf['total_profit']
+                mean_reward += inf_e['total_reward']
+                mean_profit += inf_e['total_profit']
                 break
     mean_reward /= K_folds
     mean_profit /= K_folds

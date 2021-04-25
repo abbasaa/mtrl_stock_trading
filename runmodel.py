@@ -37,7 +37,7 @@ N_HISTORIC_PRICES = 1
 PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 PolicyNet = PolicyNet.to(device)
 
-PolicyNet.load_state_dict(torch.load(os.path.join(f'models', f'{TICKER}\dqn_{TYPE}.{GAMMA}-{TICKER}.pth'))['dqn_state_dict'])
+PolicyNet.load_state_dict(torch.load(os.path.join(f'checkpoints\dqn\AAPL', 'dqn_reward_93.49629999999992.pth'))['dqn_state_dict'])
 obs = env.reset()
 pos = torch.zeros((1, 1), dtype=torch.float, device=device)
 t_step = -1
