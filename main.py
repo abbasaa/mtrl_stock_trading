@@ -52,8 +52,8 @@ BATCH_SIZE = 128
 GAMMA = 0.1
 EPS_START = 0.9
 EPS_END = 0.1
-EPS_DELAY = 8000
-EPS_DECAY = .99995
+EPS_DELAY = 2*(END_TIME - WINDOW) # Increase?
+EPS_DECAY = .99995 # Decrease?
 TARGET_UPDATE = 10
 EVAL = 10
 
@@ -124,21 +124,32 @@ eval_profit = []
 highest_reward = float('-inf')
 highest_profit = float('-inf')
 
+Actions = np.zeros((1, 2))
 
 def select_action(positions, time_idx, last_price):
     global steps_done
-    sample = random.random()
-    decay = 1
-    if steps_done > EPS_DELAY:
-        decay = math.pow(EPS_DECAY, steps_done - EPS_DELAY)
-    eps_threshold = EPS_END + (EPS_START - EPS_END) * decay
+    # sample = random.random()
+    # decay = 1
+    # if steps_done > EPS_DELAY:
+         #decay = math.pow(EPS_DECAY, steps_done - EPS_DELAY)
+    # eps_threshold = EPS_END + (EPS_START - EPS_END) * decay
     steps_done += 1
-    if sample > eps_threshold:
-        with torch.no_grad():
-            return PolicyNet(positions, time_idx, last_price).max(1)[1].view(1, 1).float(), True
+    # if sample > eps_threshold:
+    #     with torch.no_grad():
+    #         return PolicyNet(positions, time_idx, last_price).max(1)[1].view(1, 1).float(), True
+    # else:
+    #     exploration[-1] += 1
+    #     return torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.float), False
+    if steps_done < EPS_DELAY:
+        a = random.randrange(N_ACTIONS)
+        is_exploit = False
     else:
-        exploration[-1] += 1
-        return torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.float), False
+        u_t = np.sqrt((2 * np.log(steps_done)) / Actions)
+        q_t = PolicyNet(positions, time_idx, last_price).detach().cpu().numpy()
+        a = np.argmax(u_t + q_t)
+        is_exploit = bool(q_t[:, 0] - q_t[:, 1] > u_t[:, 0] - u_t[:, 1])
+    Actions[:, a] += 1
+    return torch.tensor([[a]], device=device, dtype=torch.float), is_exploit
 
 
 def optimize_model():
@@ -170,6 +181,7 @@ def optimize_model():
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
     next_state_values[non_final_mask] = TargetNet(non_final_next_positions, non_final_next_times,
                                                   non_final_next_last_prices).max(1)[0].detach()
+    # TODO ADD penalization for all sell//all buy
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
     # Loss and Back Prop
