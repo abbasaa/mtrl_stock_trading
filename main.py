@@ -262,7 +262,7 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
         next_position = action
         next_observation, reward, done, info = env.step(action)
 
-        memory.push((position, t, observation[:, -1, 0]), action, (next_position, t + 1, next_observation[:, -N_HISTORIC_PRICES:, 0]),
+        memory.push((position, t, observation[:, -N_HISTORIC_PRICES:, 0]), action, (next_position, t + 1, next_observation[:, -N_HISTORIC_PRICES:, 0]),
                     reward)
 
         if steps_done % 16 == 0:
