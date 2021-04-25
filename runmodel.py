@@ -8,7 +8,7 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-device = torch.device('cpu')#'cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 TICKER = None
 GAMMA = None
 TYPE = None
@@ -35,7 +35,7 @@ N_ACTIONS = env.action_space.n
 HIDDEN_DIM = 5
 N_HISTORIC_PRICES = 1
 PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
-
+PolicyNet = PolicyNet.to(device)
 
 PolicyNet.load_state_dict(torch.load(os.path.join(f'models', f'{TICKER}\dqn_{TYPE}.{GAMMA}-{TICKER}.pth'))['dqn_state_dict'])
 obs = env.reset()
