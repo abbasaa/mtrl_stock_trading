@@ -102,6 +102,7 @@ if len(checkpoint_files) != 0:
     PolicyNet.load_state_dict(checkpoint['dqn_state_dict'])
     TargetNet.load_state_dict(checkpoint['dqn_state_dict'])
     optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    Actions = checkpoint['actions']
     steps_done = EPISODE_START * (END_TIME - WINDOW)
     if len(checkpoint_files) > 1:
         print('Removing older checkpoint files')
@@ -267,6 +268,7 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
     torch.save({
         'dqn_state_dict': PolicyNet.state_dict(),
         'optimizer_state_dict': optimizer.state_dict(),
+        'actions': Actions,
     }, os.path.join(checkpoints_dir, f'dqn.{i_episode}.pth'))
 
     # remove last checkpoint
