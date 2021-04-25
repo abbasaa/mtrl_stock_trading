@@ -20,6 +20,7 @@ start = time.perf_counter()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 TICKER = sys.argv[1]
+LOAD_CHECKPOINT = sys.argv[2]
 DATA_DIR = 'Tech'
 WINDOW = 250
 END_TIME = 754
@@ -88,7 +89,7 @@ checkpoints_dir = os.path.join(checkpoints_dir, TICKER)
 if not os.path.isdir(checkpoints_dir):
     os.mkdir(checkpoints_dir)
 checkpoint_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f)) and f.find('profit')==-1 and f.find('reward')==-1)]
-if len(checkpoint_files) != 0:
+if len(checkpoint_files) != 0 and LOAD_CHECKPOINT:
     max_eps = -2 ** 32
     for file in checkpoint_files:
         cur_eps = int(file.split('.')[1])
