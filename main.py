@@ -89,7 +89,7 @@ if not os.path.isdir(checkpoints_dir):
 checkpoints_dir = os.path.join(checkpoints_dir, TICKER)
 if not os.path.isdir(checkpoints_dir):
     os.mkdir(checkpoints_dir)
-checkpoint_files = [f for f in os.listdir(checkpoints_dir) if os.path.isfile(os.path.join(checkpoints_dir, f))]
+checkpoint_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f)) and f.find('profit')==-1 and f.find('reward')==-1)]
 if len(checkpoint_files) != 0:
     max_eps = -2 ** 32
     for file in checkpoint_files:
@@ -107,15 +107,15 @@ if len(checkpoint_files) != 0:
     steps_done = EPISODE_START * (END_TIME - WINDOW)
     if len(checkpoint_files) > 1:
         print('Removing older checkpoint files')
-        checkpoint_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f))
-                                                                       and f != f'dqn.{EPISODE_START}.pth')]
+        checkpoint_files = [f for f in checkpoint_files if f != f'dqn.{EPISODE_START}.pth']
+        # checkpoint_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f)) and f != f'dqn.{EPISODE_START}.pth' and f.find('profit') == -1 and f.find('reward') == -1)]
         for f in checkpoint_files:
             os.remove(os.path.join(checkpoints_dir, f))
 
 else:
     TargetNet.load_state_dict(PolicyNet.state_dict())
-TargetNet.eval()
 
+TargetNet.eval()
 # Data Tracking
 exploration = []
 intentional_reward = []
@@ -125,6 +125,20 @@ train_profit = []
 eval_profit = []
 highest_reward = float('-inf')
 highest_profit = float('-inf')
+max_reward = np.zeros(2)
+max_profit = np.zeros(2)
+for i in range(max_profit.shape[0]):
+    max_reward[i] = -2**30
+    max_profit[i] = -2**30
+
+profit_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f)) and f.find('profit')!=-1)]
+for i in range(max_profit.shape[0]):
+    f = profit_files[i]
+    max_profit[i] = float(f.split('_')[2][:-4])
+reward_files = [f for f in os.listdir(checkpoints_dir) if (os.path.isfile(os.path.join(checkpoints_dir, f)) and f.find('reward')!=-1)]
+for i in range(max_reward.shape[0]):
+    f = reward_files[i]
+    max_reward[i] = float(f.split('_')[2][:-4])
 
 
 def select_action(positions, time_idx, last_price):
@@ -275,6 +289,36 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
     if i_episode % EVAL == 0:
         eval_model()
 
+    cur_profit = info['total_profit']
+    cur_reward = info['total_reward']
+    if cur_profit > np.amin(max_profit):
+        i = np.argmin(max_profit)
+        # remove old max
+        old_checkpoint_file = os.path.join(checkpoints_dir, f'dqn_profit_{max_profit[i]}.pth')
+        if os.path.isfile(old_checkpoint_file):
+            os.remove(old_checkpoint_file)
+        max_profit[i] = cur_profit
+        print(f'Saving model for profit of {cur_profit} ...')
+        torch.save({
+            'dqn_state_dict': PolicyNet.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'actions': Actions,
+        }, os.path.join(checkpoints_dir, f'dqn_profit_{cur_profit}.pth'))
+
+    if cur_reward > np.amin(max_reward):
+        i = np.argmin(max_reward)
+        # remove old max reward
+        old_checkpoint_file = os.path.join(checkpoints_dir, f'dqn_reward_{max_reward[i]}.pth')
+        if os.path.isfile(old_checkpoint_file):
+            os.remove(old_checkpoint_file)
+        max_reward[i] = cur_reward
+        print(f'Saving model for reward of {cur_reward} ...')
+        torch.save({
+            'dqn_state_dict': PolicyNet.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'actions': Actions,
+        }, os.path.join(checkpoints_dir, f'dqn_reward_{cur_reward}.pth'))
+
     # save checkpoint
     print(f'Saving checkpoint for Episode {i_episode} ...')
     torch.save({
@@ -308,8 +352,8 @@ fig.savefig(os.path.join(models_dir, f'Exploration.{NUM_EPISODES}-{GAMMA}-{TICKE
 fig2, ax2 = plt.subplots()
 ax2.plot(smooth(intentional_reward, kernel_size=40))
 ax2.set_title("Intentional Reward vs Time")
-ax2.set_xlabel('Reward')
-ax2.set_ylabel('Time')
+ax2.set_ylabel('Reward')
+ax2.set_xlabel('Time')
 fig2.savefig(os.path.join(models_dir, f'Intentional_Reward.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 
 fig3, ax3 = plt.subplots()
