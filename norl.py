@@ -37,7 +37,8 @@ if not os.path.isfile(imf_filename) or not os.path.isfile(denorm_filename):
 
 # Prepare Training and Evaluation Environments
 env = anytrading_torch(device, 'stocks-v0', stock_prices, (WINDOW, END_TIME), WINDOW)
-model = PricingNet(device, TICKER)
+model = PricingNet(TICKER, device)
+model = model.to(device)
 model.eval()
 
 
@@ -50,7 +51,7 @@ def select_action(positions, time_idx, last_price):
         return 0
 
 
-model.load_state_dict(torch.load(os.path.join('models', TICKER, 'pricingnet.pth'))['dqn_state_dict'])
+model.load_state_dict(torch.load(os.path.join('models', TICKER, 'pricingnet.pth'))['pricingnet_state_dict'])
 obs = env.reset()
 pos = torch.zeros((1, 1), dtype=torch.float, device=device)
 t_step = 0
