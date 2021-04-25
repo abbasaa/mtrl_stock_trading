@@ -149,16 +149,20 @@ def select_action(positions, time_idx, last_price):
         decay = math.pow(EPS_DECAY, steps_done - EPS_DELAY)
     eps_threshold = EPS_END + (EPS_START - EPS_END) * decay
     steps_done += 1
+    # TRY PENALIZING POSITION KEEPING
     if sample > eps_threshold:
         u_t = np.sqrt((2 * np.log(steps_done)) / Actions)
         with torch.no_grad():
             q_t = PolicyNet(positions, time_idx, last_price).detach().cpu().numpy()
         a = np.argmax(u_t + q_t)
+        Actions[:, a] += 1
         is_exploit = bool(q_t[:, 0] - q_t[:, 1] > u_t[:, 0] - u_t[:, 1])
         return torch.tensor([[a]], device=device, dtype=torch.float), is_exploit
     else:
         exploration[-1] += 1
-        return torch.tensor([[random.randrange(N_ACTIONS)]], device=device, dtype=torch.float), False
+        a = random.randrange(N_ACTIONS)
+        Actions[:, a] += 1
+        return torch.tensor([[a]], device=device, dtype=torch.float), False
 
 
 def optimize_model():
@@ -190,7 +194,9 @@ def optimize_model():
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
     next_state_values[non_final_mask] = TargetNet(non_final_next_positions, non_final_next_times,
                                                   non_final_next_last_prices).max(1)[0].detach()
-    # TODO ADD penalization for all sell//all buy
+    # TOTRY: expected_state_action_values = reward_batch
+    # TOTRY: expected_state_action_values = reward_batch
+    # TOTRY: expected_state_action_values = reward_batch
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
     # Loss and Back Prop
