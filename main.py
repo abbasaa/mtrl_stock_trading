@@ -67,6 +67,7 @@ TargetNet = TargetNet.to(device)
 PolicyNet = PolicyNet.to(device)
 optimizer = optim.RMSprop(PolicyNet.parameters())
 memory = ReplayMemory(REPLAY_SIZE)
+Actions = np.zeros((1, 2))
 
 # make model folders
 models_dir = os.path.join(os.curdir, 'models')
@@ -125,7 +126,6 @@ eval_profit = []
 highest_reward = float('-inf')
 highest_profit = float('-inf')
 
-Actions = np.zeros((1, 2))
 
 def select_action(positions, time_idx, last_price):
     global steps_done
