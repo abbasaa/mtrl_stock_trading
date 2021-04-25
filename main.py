@@ -57,8 +57,8 @@ EVAL = 5
 
 # Initialize Networks, Memory and Optimizer
 N_ACTIONS = env.action_space.n
-HIDDEN_DIM = 7
-N_HISTORIC_PRICES = 1
+HIDDEN_DIM = 5
+N_HISTORIC_PRICES = 20
 PolicyNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = TargetNet.to(device)
@@ -219,7 +219,7 @@ def eval_model():
         while True:
             t_step_eval += 1
             with torch.no_grad():
-                act_eval = PolicyNet(pos_eval, [t_step_eval], obs_eval[:, -1, 0]).max(1)[1].view(1, 1).float()
+                act_eval = PolicyNet(pos_eval, [t_step_eval], obs_eval[:, -N_HISTORIC_PRICES:, 0]).max(1)[1].view(1, 1).float()
             obs_eval, _, is_done_e, inf_e = environment.step(act_eval)
             pos_eval = act_eval
             if is_done_e:
@@ -257,11 +257,11 @@ for i_episode in range(EPISODE_START, NUM_EPISODES):
 
     while True:
         t += 1
-        action, exploit = select_action(position, [t], observation[:, -1, 0])
+        action, exploit = select_action(position, [t], observation[:, -N_HISTORIC_PRICES:, 0])
         next_position = action
         next_observation, reward, done, info = env.step(action)
 
-        memory.push((position, t, observation[:, -1, 0]), action, (next_position, t + 1, next_observation[:, -1, 0]),
+        memory.push((position, t, observation[:, -1, 0]), action, (next_position, t + 1, next_observation[:, -N_HISTORIC_PRICES:, 0]),
                     reward)
 
         if steps_done % 16 == 0:
