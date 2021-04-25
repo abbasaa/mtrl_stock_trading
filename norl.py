@@ -1,20 +1,15 @@
-import math
 import os
-import random
 import time
 import sys
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import torch
-import torch.nn.functional as F
-import torch.optim as optim
+
 
 from anytrading_torch import anytrading_torch
 from PricingNet import PricingNet
 from preprocess import getimfs
-from ReplayMemory import ReplayMemory, Transition
 
 start = time.perf_counter()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,13 +37,15 @@ model = model.to(device)
 model.eval()
 
 
-def select_action(positions, time_idx, last_price):
+def select_action(position, time_idx, prices):
     with torch.no_grad():
         predicted = model(time_idx)
-    if predicted >= last_price:
+    if predicted >= max(prices):
         return 1
-    else:
+    elif predicted <= min(prices):
         return 0
+    else:
+        return position
 
 
 model.load_state_dict(torch.load(os.path.join('models', TICKER, 'pricingnet.pth'))['pricingnet_state_dict'])
@@ -58,7 +55,7 @@ t_step = 0
 while True:
     t_step += 1
     with torch.no_grad():
-        act = select_action(pos, [t_step], obs[:, -1, 0])
+        act = select_action(pos, [t_step], obs[:, -20:, 0])
     obs, _, is_done, inf = env.step(act)
     pos = act
     if is_done:
