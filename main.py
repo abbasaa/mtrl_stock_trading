@@ -387,7 +387,7 @@ t_step = -1
 while True:
     t_step += 1
     with torch.no_grad():
-        act = PolicyNet(pos, [t_step], obs[:, -1, 0]).max(1)[1].view(1, 1).float()
+        act = PolicyNet(pos, [t_step], obs[:, -N_HISTORIC_PRICES, 0]).max(1)[1].view(1, 1).float()
     obs, _, is_done, inf = env.step(act)
     pos = act
     if is_done:
