@@ -36,9 +36,9 @@ class DQN(nn.Module):
         # output size: action space
 
     def forward(self, position, time_idx, last_price):
-        prediction = self.pricing(time_idx).squeeze(dim=1)
-        input1 = torch.cat((position.squeeze(dim=-1), last_price, prediction)).unsqueeze(0)
-        # input1 = torch.transpose(input1, 0, 1)
+        prediction = self.pricing(time_idx)
+        input1 = torch.cat((position.transpose(0, 1), last_price.transpose(0, 1), prediction.transpose(0, 1)))
+        input1 = torch.transpose(input1, 0, 1)
         out1 = F.relu(self.layer1(input1))
         qvals = self.layer2(out1)
         return qvals
