@@ -41,24 +41,22 @@ def import_stock_to_env(filename: str):
 
 DATA_DIR = "trained_models"
 TEST_DIR = "Tech"
-TRAINED_DIR = "Tech/TRAINED"
+TRAINED_DIR = "TRAINED"
 
 
 # from the policy nets of the trained agents, run each test stock
 # to get action values
 def run_agents():
-    num_agents = 0
-    num_tests = 0
-    for file in os.listdir(TRAINED_DIR):
-        num_agents = num_agents + 1
-    for file in os.listdir(TEST_DIR):
-        num_tests = num_tests + 1
+    num_agents = len(os.listdir(TRAINED_DIR))
+    num_tests = len(os.listdir(TEST_DIR))
     test_stock_prices = np.zeros((num_tests, END_TIME))
     values  = np.zeros((END_TIME - WINDOW,2,num_agents,num_tests))
     fnum = 0
 
     for testfile in os.listdir(TEST_DIR):
         env_filname = os.path.join(os.curdir, TEST_DIR, testfile)
+        if not os.path.isfile(env_filname):
+            continue
         env = import_stock_to_env(env_filname)
         test_stock_prices[fnum,:] = env.env.prices
         j = 0
