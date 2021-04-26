@@ -40,9 +40,9 @@ model.eval()
 def select_action(position, time_idx, prices):
     with torch.no_grad():
         predicted = model(time_idx)
-    if predicted >= max(prices):
+    if predicted >= torch.max(prices):
         return 1
-    elif predicted <= min(prices):
+    elif predicted <= torch.min(prices):
         return 0
     else:
         return position

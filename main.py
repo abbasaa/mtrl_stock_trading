@@ -247,7 +247,7 @@ def eval_model():
         }, os.path.join(models_dir, f'dqn_profit.{GAMMA}-{TICKER}.pth'))
 
 
-NUM_EPISODES = 50
+NUM_EPISODES = 100
 for i_episode in range(EPISODE_START, NUM_EPISODES):
     print("EPISODE: ", i_episode)
     # Initialize the environment and state
@@ -358,7 +358,7 @@ ax2.set_title("Intentional Reward vs Time")
 ax2.set_xlabel('Time')
 ax2.set_ylabel('Reward')
 fig2.savefig(os.path.join(models_dir, f'Intentional_Reward.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
-
+'''
 fig3, ax3 = plt.subplots()
 ax3.plot([r for r in range(len(train_reward))], smooth(train_reward), 'r', label="train")
 ax3.plot([r * EVAL for r in range(len(eval_reward))], eval_reward, 'b', label="eval")
@@ -379,7 +379,7 @@ handles, labels = ax4.get_legend_handles_labels()
 ax4.legend(handles, labels)
 fig4.savefig(os.path.join(models_dir, f'Profit.{NUM_EPISODES}-{GAMMA}-{TICKER}.png'))
 plt.cla()
-
+'''
 PolicyNet.load_state_dict(torch.load(os.path.join(models_dir, f'dqn_profit.{GAMMA}-{TICKER}.pth'))['dqn_state_dict'])
 obs = env.reset()
 pos = torch.zeros((1, 1), dtype=torch.float, device=device)
