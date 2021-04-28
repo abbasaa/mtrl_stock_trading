@@ -6,8 +6,8 @@ import gym_anytrading
 import os
 import sys
 
-from stable_baselines import A2C
-from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines3 import DQN
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 import matplotlib.pyplot as plt
 
@@ -31,9 +31,11 @@ env_maker = lambda: gym.make(
 
 env = DummyVecEnv([env_maker])
 
-policy_kwargs = dict(net_arch=[64, 'lstm', dict(vf=[128, 128, 128], pi=[64, 64])])
-model = A2C('MlpLstmPolicy', env, verbose=1, policy_kwargs=policy_kwargs)
+model = DQN('MlpPolicy', env, verbose=1)
+# Train the agent
 model.learn(total_timesteps=504*100)
+# Save the agent
+model.save("dqn_lunar")
 
 
 env = env_maker()
