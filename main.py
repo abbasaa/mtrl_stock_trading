@@ -58,8 +58,8 @@ EVAL = 5
 
 # Initialize Networks, Memory and Optimizer
 N_ACTIONS = env.action_space.n
-HIDDEN_DIM = 5
-N_HISTORIC_PRICES = 20
+HIDDEN_DIM = 26
+N_HISTORIC_PRICES = 50
 PolicyNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = DQN(N_HISTORIC_PRICES + 2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 TargetNet = TargetNet.to(device)
@@ -171,8 +171,6 @@ def optimize_model():
         return
     transitions = memory.sample(BATCH_SIZE)
     batch = Transition(*zip(*transitions))
-    non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                            batch.next_state)), device=device, dtype=torch.bool)
 
     # Next State
     non_final_next_positions = torch.cat([s[0] for s in batch.next_state if s is not None])
@@ -193,10 +191,9 @@ def optimize_model():
     state_action_values = PolicyNet(position_batch, times_batch,
                                     last_price_batch).gather(1, action_batch.long())
     next_state_values = torch.zeros(BATCH_SIZE, device=device)
-    next_state_values[non_final_mask] = TargetNet(non_final_next_positions, non_final_next_times,
+    next_state_values = TargetNet(non_final_next_positions, non_final_next_times,
                                                   non_final_next_last_prices).max(1)[0].detach()
-    # TOTRY: expected_state_action_values = reward_batch
-    # TOTRY: expected_state_action_values = reward_batch
+
     # TOTRY: expected_state_action_values = reward_batch
     expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
