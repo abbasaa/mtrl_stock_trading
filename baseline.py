@@ -3,13 +3,20 @@ import pandas as pd
 
 import gym
 import gym_anytrading
+import os
+import sys
 
 from stable_baselines import A2C
 from stable_baselines.common.vec_env import DummyVecEnv
 
 import matplotlib.pyplot as plt
 
-df = gym_anytrading.datasets.STOCKS_GOOGL.copy()
+TICKER = sys.argv[1]
+DATA_DIR = 'Tech'
+
+# CHECK DIR FOR FILE IF NOT THROW ERROR/RUN PREPROCESS
+data_file = os.path.join(os.curdir, DATA_DIR, f'{TICKER}.csv')
+df = pd.read_csv(data_file)
 
 window_size = 250
 start_index = window_size
@@ -26,7 +33,7 @@ env = DummyVecEnv([env_maker])
 
 policy_kwargs = dict(net_arch=[64, 'lstm', dict(vf=[128, 128, 128], pi=[64, 64])])
 model = A2C('MlpLstmPolicy', env, verbose=1, policy_kwargs=policy_kwargs)
-model.learn(total_timesteps=504*50)
+model.learn(total_timesteps=504*100)
 
 
 env = env_maker()
