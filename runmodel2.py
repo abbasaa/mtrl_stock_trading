@@ -9,7 +9,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-TICKER = 'AAPL'
+TICKER = 'INTC'
 GAMMA = 0.1
 TYPE = None
 
@@ -36,8 +36,8 @@ HIDDEN_DIM = 5
 N_HISTORIC_PRICES = 1
 PolicyNet = DQN(N_HISTORIC_PRICES+2, HIDDEN_DIM, N_ACTIONS, TICKER, device)
 PolicyNet = PolicyNet.to(device)
-
-PolicyNet.load_state_dict(torch.load(os.path.join('checkpoints', 'dqn','INTC', CHANGE THISSSSSS))['dqn_state_dict'])
+PolicyNet.eval()
+PolicyNet.load_state_dict(torch.load(os.path.join('checkpoints', 'dqn','INTC', 'dqn_profit_INTC.pth'))['dqn_state_dict'])
 models_dir = os.path.join(os.curdir, 'models', TICKER)
 if not os.path.isdir(models_dir):
     raise Exception('No models dir to load pretrained pricingnet')
