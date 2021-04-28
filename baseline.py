@@ -30,8 +30,10 @@ env_maker = lambda: gym.make(
 )
 
 env = DummyVecEnv([env_maker])
-
-model = DQN('MlpPolicy', env, verbose=1)
+policy_kwargs = dict(net_arch=dict(pi=[128, 128], qf=[256, 256]))
+model = DQN('MlpPolicy', env, buffer_size=512, learning_starts=5000, batch_size=128, gamma=0.1,
+            target_update_interval=5000, exploration_initial_eps=.9, exploration_final_eps=.1,
+            policy_kwargs=policy_kwargs)
 # Train the agent
 model.learn(total_timesteps=504*100)
 # Save the agent
